@@ -41,7 +41,7 @@ def initstar(fit, ydeg, udeg=[], include_rv=False):
         else:
             star.map.veq = cfg.star.veq
 
-        star.map.alpha = cfg.star.alpha
+        # star.map.alpha = cfg.star.alpha
 
     return star
 

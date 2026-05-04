@@ -44,50 +44,45 @@ def create_eigens(cfile):
 
     lmax = cfg.twod.lmax
     udeg = cfg.twod.udeg
-    nsamples = cfg.twod.nsamples
 
     star = utils.initstar(fit, lmax, udeg=udeg)
     print()
     print("\tFinding rank of the spherical harmponic design matrix:")
     print("\t------------------------------------------------")
+
     A = star.map.design_matrix(theta=np.linspace(0,360,100)).eval()
+    R = np.empty((1, lmax))
 
-    R = np.empty((nsamples, lmax))
-
-    for k in range(nsamples):
-        R[k] = [
-            np.linalg.matrix_rank(A[:, : (l + 1) ** 2]) for l in range(1, lmax + 1)
-        ]
-
-    R = np.median(R, axis=0)
-
+    R = [
+        np.linalg.matrix_rank(A[:, : (l + 1) ** 2]) for l in range(1, lmax + 1)
+    ]
 
     #Display rank for each spherical harmonic degree
     print(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(A.shape[1])}) is {int(R[-1])}\033[0m") 
     print("\t------------------------------------------------")
     print()
 
-    print("\tCreating uniform star map")
-    star = utils.initstar(fit, 1, udeg=udeg)
-
-    fit.sflux = star.map.flux(theta=cfg.twod.nlcs).eval()
-
     print("\tSetting up new directory")
-    m = fc.Map()
-    m.ncurves = int((cfg.twod.lmax + 1) ** 2 - 1)
-    m.lmax    = cfg.twod.lmax
+    lmax = cfg.twod.lmax
+    ncurves = int((lmax + 1) ** 2 - 1)
+    nlcs = cfg.twod.nlcs
 
     if not os.path.isdir(cfg.outdir):
         os.mkdir(cfg.outdir)
 
-    m.subdir = cfg.folder
-    outdir = os.path.join(cfg.outdir, m.subdir)
+    subdir = cfg.folder
+    outdir = os.path.join(cfg.outdir, subdir)
 
-    if not os.path.isdir(os.path.join(cfg.outdir, m.subdir)):
-        os.mkdir(os.path.join(cfg.outdir, m.subdir))
+    if not os.path.isdir(os.path.join(cfg.outdir, subdir)):
+        os.mkdir(os.path.join(cfg.outdir, subdir))
 
-    print("\tRecreating star from cfg file")
-    star = utils.initstar(fit, m.lmax, udeg=udeg)
+    print()
+    print("\tCreating star with parameters from cfg file")
+    star = utils.initstar(fit, lmax, udeg=udeg)
+
+    if not star.map.limbdark_is_physical().eval():
+        print("----------------------------------------------------------------------------")
+        print("\033[31mWARNING:\033[0m Limb Darkening is not physical!")
 
     eigen_path = os.path.join(outdir,"stored-eigens")
     if os.path.exists(eigen_path):
@@ -103,7 +98,7 @@ def create_eigens(cfile):
 
     if use_stored_pca.lower().strip() == "y":
         print("----------------------------------------------------------------------------")
-        print(f"\tLoading in previously stored eigen results from:\n\t\033[34m{eigen_path}\033[0m")
+        print(f"\tReading previously stored eigen results from:\n\t\033[34m{eigen_path}\033[0m")
         try:
             eigeny = np.loadtxt(f"{eigen_path}/eigeny.txt")
             evalues = np.loadtxt(f"{eigen_path}/evalues.txt")
@@ -119,9 +114,7 @@ def create_eigens(cfile):
         print("----------------------------------------------------------------------------")
         print(f"\tCalculating new eigen results and storing them in:\n\t\033[34m{eigen_path}\033[0m")
         eigeny, evalues, evectors, ecurves, lcs = \
-        eigen.mkcurves(star, cfg.twod.nlcs, m.lmax, fit.sflux, ncurves=m.ncurves, method=cfg.method, \
-                 negative = cfg.negative, remove_y00 = cfg.remove_y00, \
-                 all_curves = cfg.all_curves, factor_bool = cfg.factor_bool, start_l=cfg.start_l)
+        eigen.mkcurves(star, nlcs, lmax, ncurves=ncurves, method=cfg.method)
         
         np.savetxt(f"{eigen_path}/eigeny.txt", eigeny)
         np.savetxt(f"{eigen_path}/evalues.txt", evalues)
@@ -130,30 +123,22 @@ def create_eigens(cfile):
         np.savetxt(f"{eigen_path}/lcs.txt",lcs)
 
 
-    if not star.map.limbdark_is_physical().eval():
-        print("----------------------------------------------------------------------------")
-        print("WARNING: Limb Darkening is not physical!")
-
-
     print("----------------------------------------------------------------------------")
     print()
     print("Finding rank of the ecurve design matrix:")
     print("----------------------------------------------------------------------------")
     ecurve_A = ecurves.T
 
-    ecurve_R = np.empty((nsamples, lmax))
-
-    for k in range(nsamples):
+    ecurve_R = np.empty((1, lmax))
         
-        ecurve_R[k] = [
-            np.linalg.matrix_rank(ecurve_A[:, : (l + 1) ** 2]) for l in range(1, lmax + 1)
-        ]
+    ecurve_R = [
+        np.linalg.matrix_rank(ecurve_A[:, : (l + 1) ** 2]) for l in range(1, lmax + 1)
+    ]
 
-    ecurve_R = np.median(ecurve_R, axis=0) 
     #Display rank for each spherical harmonic degree of the ecurve design matrix
     print(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(ecurve_A.shape[1])}) is {int(ecurve_R[-1])}\033[0m")
     print()
-    print("\tNote, the ecurve design matrix does not include the uniform map\n\tand should be one less than the spherical harmonic result.")  
+    print("\tNote, the ecurve design matrix does not include the uniform map\n\tand thus the rank should one less than the spherical harmonic result.")  
     print("----------------------------------------------------------------------------")
 
     return eigeny, evalues, evectors, ecurves, lcs, star, cfg, fit
@@ -169,7 +154,10 @@ if __name__ == "__main__":
     """
     # print(sys.argv) #Uncomment if you want to see command line arguments 
     if len(sys.argv) < 2:
-        print("ERROR: Call structure is python create_eigens.py <configuration file>.")
+        print()
+        print("----------------------------------------------------------------------------")
+        print('\033[31mERROR:\033[0m' + ' Call structure is "\033[34mpython create_eigens.py <configuration file>\033[0m"')
+        print("----------------------------------------------------------------------------")
         sys.exit()
     else:
         cfile = sys.argv[1]

@@ -34,11 +34,11 @@ class Fit:
 
         #PCA options
         self.cfg.method     = self.cfg.cfg.get("PCA-Settings",'method')
-        self.cfg.negative     = self.cfg.cfg.getboolean("PCA-Settings",'negative')
-        self.cfg.remove_y00     = self.cfg.cfg.getboolean("PCA-Settings",'remove_y00')
-        self.cfg.all_curves     = self.cfg.cfg.getboolean("PCA-Settings",'all_curves')
-        self.cfg.factor_bool     = self.cfg.cfg.getboolean("PCA-Settings",'factor_bool')
-        self.cfg.start_l      = self.cfg.cfg.getint("PCA-Settings",'start_l')
+        # self.cfg.negative     = self.cfg.cfg.getboolean("PCA-Settings",'negative')
+        # self.cfg.remove_y00     = self.cfg.cfg.getboolean("PCA-Settings",'remove_y00')
+        # self.cfg.all_curves     = self.cfg.cfg.getboolean("PCA-Settings",'all_curves')
+        # self.cfg.factor_bool     = self.cfg.cfg.getboolean("PCA-Settings",'factor_bool')
+        # self.cfg.start_l      = self.cfg.cfg.getint("PCA-Settings",'start_l')
        
         # Gen options - Not needed
         # self.cfg.twod.timefile = self.cfg.cfg.get('Gen', 'timefile')
@@ -47,7 +47,7 @@ class Fit:
 
         self.cfg.twod.lmax = self.cfg.cfg.getint('Gen', 'lmax')
         self.cfg.twod.nlcs = self.cfg.cfg.getint('Gen', 'nlcs')
-        self.cfg.twod.nsamples = self.cfg.cfg.getint('Gen', 'nsamples')
+        # self.cfg.twod.nsamples = self.cfg.cfg.getint('Gen', 'nsamples')
 
         self.cfg.twod.udeg = [float(item.strip()) for item in self.cfg.cfg.get('Limb-Darkening', 'udeg').split(",")]
 
@@ -78,7 +78,7 @@ class Fit:
         # self.cfg.star.z    = self.cfg.cfg.getfloat('Star', 'z')
         self.cfg.star.inc = self.cfg.cfg.getfloat('Star', 'inc')
         self.cfg.star.veq = self.cfg.cfg.getfloat('Star', 'veq')
-        self.cfg.star.alpha = self.cfg.cfg.getfloat('Star', 'alpha')
+        # self.cfg.star.alpha = self.cfg.cfg.getfloat('Star', 'alpha')
 
 
     # def read_data(self):

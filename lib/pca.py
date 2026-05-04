@@ -2,8 +2,9 @@ import numpy as np
 import sklearn
 import sklearn.decomposition
 from sklearn.decomposition import PCA
+import sys
 
-def pca(arr, method='pca', ncomp=None):
+def pca(arr, method='full_pca', ncomp=None):
     """
     Runs principle component analysis on the input array.
 
@@ -24,13 +25,24 @@ def pca(arr, method='pca', ncomp=None):
     proj: 2D array
         (m, n) array of data projected in the new space
 
-    Notes
-    -----
-    See https://glowingpython.blogspot.com/2011/07/pca-and-image-compression-with-numpy.html
     """
+
     nt = arr.shape[1]
+
+    if method == "full_pca":
+        pca = PCA(n_components=ncomp, svd_solver = "full")
+        pca.fit(arr.T)
+        evalues  = pca.explained_variance_
+        evectors = pca.components_
+        evectors = evectors.T
+
+        arr = arr.T
+        # Subtract the mean
+        m = (arr - np.mean(arr.T, axis=1)).T
+        
+        proj = np.dot(m.T,evectors).T
     
-    if method == 'pca':
+    elif method == 'pca':
         
         arr = arr.T
         # Subtract the mean
@@ -41,7 +53,7 @@ def pca(arr, method='pca', ncomp=None):
 
         # Sort descending
         idx = np.argsort(evalues)[::-1]
-        evalues  = evalues[   idx]
+        evalues  = evalues[idx]
         evectors = evectors[:,idx]
         # Calculate projection of the data in the new space
         # Need to do it this way for numpy==1.21 (see below)
@@ -57,32 +69,6 @@ def pca(arr, method='pca', ncomp=None):
         Need above version, which is equivalent:
         (m.T * evectors).T = evectors.T * m.T.T = evectors.T * m.T
         """
-
-    elif method == "full_pca":
-        pca = PCA(n_components=ncomp, svd_solver = "full")
-        pca.fit(arr.T)
-        evalues  = pca.explained_variance_
-        evectors = pca.components_
-        evectors = evectors.T
-
-        arr = arr.T
-        # Subtract the mean
-        m = (arr - np.mean(arr.T, axis=1)).T
-        
-        proj = np.dot(m.T,evectors).T
-
-    elif method == "cov_pca":
-        pca = PCA(n_components=ncomp, svd_solver = "covariance_eigh")
-        pca.fit(arr.T)
-        evalues  = pca.explained_variance_
-        evectors = pca.components_
-        evectors = evectors.T
-
-        arr = arr.T
-        # Subtract the mean
-        m = (arr - np.mean(arr.T, axis=1)).T
-        
-        proj = np.dot(m.T,evectors).T
     
     elif method == 'tsvd':
         # np.random.seed(26)
@@ -96,6 +82,12 @@ def pca(arr, method='pca', ncomp=None):
             proj[i] = np.sum(evectors[i] * arr.T, axis=1)
 
         evectors = evectors.T
+
+    else:
+        print("----------------------------------------------------------------------------")
+        print("\033[31mNo valid PCA present, please check the confirguration file.\033[0m")
+        print("----------------------------------------------------------------------------")
+        sys.exit()
             
         
     return evalues, evectors, proj

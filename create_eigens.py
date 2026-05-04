@@ -1,15 +1,22 @@
 """
-need to run 
-rm /Users/a.j.devaux/.theano/compiledir_macOS-26.4-arm64-arm-64bit-arm-3.10.17-64/.lock 
-in terminal to get theano to work if saying constant folding error
+File to create eigens, check their rank, and save them for a stellar system 
+[insert citation for my paper and also github here]
+
+
+If theano shuts down and says 'constant folding error', may need to run line akin to:
+rm /Users/[insert your username]/.theano/compiledir_macOS-26.4-arm64-arm-64bit-arm-3.10.17-64/.lock 
+in terminal to get theano to work.  If this does not work, the error message should have 
+the exact directory to insert after 'rm.'  Otherwise, post on the github.
 """
 
 
-#general imports
+# General imports
 import os
 import sys
 import numpy as np
 import starry2 as starry
+import faulthandler
+faulthandler.enable()
 
 # Directory structure
 maindir    = os.path.dirname(os.path.realpath(__file__))
@@ -17,22 +24,46 @@ libdir     = os.path.join(maindir, 'lib')
 
 # Lib imports
 sys.path.append(libdir)
-print(sys.path)
 from lib import eigen
 from lib import utils
-from lib import fitclass    as fc
+from lib import fitclass as fc
 
-
+# Set up starry configuration
 starry.config.quiet = True
+starry.config.lazy = True
+sys.setrecursionlimit(10000) # starry seems to have a lot of recursion
 
-# Starry seems to have a lot of recursion
-sys.setrecursionlimit(10000)
-
-
-import faulthandler
-faulthandler.enable()
 
 def create_eigens(cfile):
+    """
+   [description]
+
+    Arguments
+    ---------
+    cfile: string
+        name of configuration file
+
+    Returns
+    -------
+    eigeny: 2D array
+        (ncurves, ny) array of y coefficients for each harmonic. 
+        ncurves is the number of harmonics, including only positive versions and excluding Y00: (lmax + 1)**2 - 1
+        ny is the number of y coefficients to describe a harmonic with degree lmax: (lmax + 1)**2 (includes y00)
+    evalues: 1D array
+        (ncurves) array of eigenvalues sorted by variance
+    evectors: 2D array
+        (ncurves, nlcs) array of normalized (unit) eigenvectors
+    ecurves: 2D array ("proj")
+        (ncurves, nt) array of the data projected in the new space (the PCA "eigencurves") 
+        Note, the imaginary part is discarded
+    lcs: 2D array
+        (ncurves, nt) array of the light curves that are passed into pca to generate the other return values
+    star: object
+        A starry star object, initialized with a cfg file
+    fit: fit class (defined in lib/fitclass.py)
+        stored fit values read from cfg
+    """    
+
     print("\nSetting-Up:")
     print("----------------------------------------------------------------------------")
 
@@ -114,7 +145,7 @@ def create_eigens(cfile):
         print("----------------------------------------------------------------------------")
         print(f"\tCalculating new eigen results and storing them in:\n\t\033[34m{eigen_path}\033[0m")
         eigeny, evalues, evectors, ecurves, lcs = \
-        eigen.mkcurves(star, nlcs, lmax, ncurves=ncurves, method=cfg.method)
+        eigen.mkcurves(star, nlcs, lmax, ncurves, cfg.twod.use_y00)
         
         np.savetxt(f"{eigen_path}/eigeny.txt", eigeny)
         np.savetxt(f"{eigen_path}/evalues.txt", evalues)
@@ -140,8 +171,7 @@ def create_eigens(cfile):
     print()
     print("\tNote, the ecurve design matrix does not include the uniform map\n\tand thus the rank should one less than the spherical harmonic result.")  
     print("----------------------------------------------------------------------------")
-
-    return eigeny, evalues, evectors, ecurves, lcs, star, cfg, fit
+    return eigeny, evalues, evectors, ecurves, lcs, star, fit
     
 
     

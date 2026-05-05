@@ -23,11 +23,11 @@ def initstar(fit, ydeg, udeg=[], include_rv=False):
         maximum spherical harmonic degree of the star's surface
         Sets number of modes (map.y in starry) to (lmax + 1)**2
 
-    udeg: 1D array
+    udeg: 1D array (optional)
         limb darkening coefficient to use for star
-        If empty array, no limb darkening is applied.  Goes up to quadratic (2 coefficients)
+        If empty array (default), no limb darkening is applied.  Goes up to quadratic (2 coefficients)
 
-    include_rv: boolean
+    include_rv: boolean (optional)
         Whether to include radial velocity map features in star.  Default to False
         If True, will use fit to set veq of star
 

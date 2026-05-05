@@ -22,26 +22,34 @@ faulthandler.enable()
 maindir    = os.path.dirname(os.path.realpath(__file__))
 libdir     = os.path.join(maindir, 'lib')
 
-# Lib imports
+# lib imports
 sys.path.append(libdir)
 from lib import eigen
 from lib import utils
 from lib import fitclass as fc
+from lib.spotable import spotable as se
 
 # Set up starry configuration
 starry.config.quiet = True
 starry.config.lazy = True
 sys.setrecursionlimit(10000) # starry seems to have a lot of recursion
 
+# Whether or not to show print statements in code
+dpm = False #change to False to make quiet
 
-def create_eigens(cfile):
+def create_eigens(cfile, prompt_user=True):
     """
-   [description]
+    Calculates all eigens according to passed cfile and saves them to txt files.  
+    If saved eigens already exist, gives option to read them instead of re-calculating.
 
     Arguments
     ---------
     cfile: string
         name of configuration file
+
+    use_stored_pca: boolean (optional)
+        Whether or not to prompt the user to use stored eigens.  When True (default), will ask user.
+        When False, will use stored eigens if possible without prompting.
 
     Returns
     -------
@@ -64,22 +72,28 @@ def create_eigens(cfile):
         stored fit values read from cfg
     """    
 
-    print("\nSetting-Up:")
-    print("----------------------------------------------------------------------------")
+    se("\nSetting-Up:",dp = dpm)
+    se("----------------------------------------------------------------------------",dp = dpm)
 
     fit = fc.Fit()
 
-    print("\tReading the configuration file & data")
-    fit.read_config(cfile)
+    se("\tReading the configuration file & data",dp = dpm)
+
+    try:
+        fit.read_config(cfile)
+    except:
+        se("----------------------------------------------------------------------------",dp = dpm)
+        sys.exit('\033[31mERROR:\033[0m' + ' Check Name of Configuration File.',dp = dpm)
+
     cfg = fit.cfg
 
     lmax = cfg.twod.lmax
     udeg = cfg.twod.udeg
 
     star = utils.initstar(fit, lmax, udeg=udeg)
-    print()
-    print("\tFinding rank of the spherical harmponic design matrix:")
-    print("\t------------------------------------------------")
+
+    se("\n\tFinding rank of the spherical harmponic design matrix:",dp = dpm)
+    se("\t------------------------------------------------",dp = dpm)
 
     A = star.map.design_matrix(theta=np.linspace(0,360,100)).eval()
     R = np.empty((1, lmax))
@@ -89,11 +103,9 @@ def create_eigens(cfile):
     ]
 
     #Display rank for each spherical harmonic degree
-    print(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(A.shape[1])}) is {int(R[-1])}\033[0m") 
-    print("\t------------------------------------------------")
-    print()
+    se(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(A.shape[1])}) is {int(R[-1])}\033[0m",dp = dpm) 
+    se("\t------------------------------------------------\n",dp = dpm)
 
-    print("\tSetting up new directory")
     lmax = cfg.twod.lmax
     ncurves = int((lmax + 1) ** 2 - 1)
     nlcs = cfg.twod.nlcs
@@ -103,33 +115,45 @@ def create_eigens(cfile):
 
     subdir = cfg.folder
     outdir = os.path.join(cfg.outdir, subdir)
+    se(f"\tSetting directory to:\n\t\033[34m{outdir}\033[0m",dp = dpm)
 
     if not os.path.isdir(os.path.join(cfg.outdir, subdir)):
         os.mkdir(os.path.join(cfg.outdir, subdir))
 
-    print()
-    print("\tCreating star with parameters from cfg file")
+
+    se("\n\tCreating star with parameters from cfg file",dp = dpm)
     star = utils.initstar(fit, lmax, udeg=udeg)
 
     if not star.map.limbdark_is_physical().eval():
-        print("----------------------------------------------------------------------------")
-        print("\033[31mWARNING:\033[0m Limb Darkening is not physical!")
+        se("----------------------------------------------------------------------------",dp = dpm)
+        se("\033[31mWARNING:\033[0m Limb Darkening is not physical!",dp = dpm)
+
 
     eigen_path = os.path.join(outdir,"stored-eigens")
-    if os.path.exists(eigen_path):
-        print("----------------------------------------------------------------------------")
-        print()
-        use_stored_pca = input("Would you like to use the stored eigen results? (y/n) ")
+    if prompt_user:
+        if os.path.exists(eigen_path):
+            se("----------------------------------------------------------------------------\n",dp = dpm)
+            use_stored_pca = input("Would you like to use the stored eigen results? (y/n) ")
+        else:
+            se("----------------------------------------------------------------------------\n",dp = dpm)
+            se("No stored eigen results found, creating new ones:",dp = dpm)
+            os.mkdir(eigen_path)
+            use_stored_pca = "n"
     else:
-        print("----------------------------------------------------------------------------")
-        print()
-        print("No stored eigen results found, creating new ones:")
-        os.mkdir(eigen_path)
-        use_stored_pca = "n"
+        if os.path.exists(eigen_path):
+            se("----------------------------------------------------------------------------\n",dp = dpm)
+            se("Attempting to read in existing eigens:",dp = dpm)
+            use_stored_pca = "y"
+        else:
+            se("----------------------------------------------------------------------------\n",dp = dpm)
+            se("No stored eigen results found, creating new ones:",dp = dpm)
+            os.mkdir(eigen_path)
+            use_stored_pca = "n"
+
 
     if use_stored_pca.lower().strip() == "y":
-        print("----------------------------------------------------------------------------")
-        print(f"\tReading previously stored eigen results from:\n\t\033[34m{eigen_path}\033[0m")
+        se("----------------------------------------------------------------------------",dp = dpm)
+        se(f"\tReading previously stored eigen results from:\n\t\033[34m{eigen_path}\033[0m",dp = dpm)
         try:
             eigeny = np.loadtxt(f"{eigen_path}/eigeny.txt")
             evalues = np.loadtxt(f"{eigen_path}/evalues.txt")
@@ -137,13 +161,12 @@ def create_eigens(cfile):
             ecurves = np.loadtxt(f"{eigen_path}/ecurves.txt")
             lcs = np.loadtxt(f"{eigen_path}/lcs.txt")
         except:
-            print()
-            print(f"\t\033[31m\033[1mStored eigen results are invalid, calculating new ones!\033[0m")
+            se(f"\n\033[31m\033[1mStored eigen results are invalid, calculating new ones:\033[0m",dp = dpm)
             use_stored_pca = "n"
 
     if use_stored_pca.lower().strip() != "y":
-        print("----------------------------------------------------------------------------")
-        print(f"\tCalculating new eigen results and storing them in:\n\t\033[34m{eigen_path}\033[0m")
+        se("----------------------------------------------------------------------------",dp = dpm)
+        se(f"\tCalculating new eigen results and storing them in:\n\t\033[34m{eigen_path}\033[0m",dp = dpm)
         eigeny, evalues, evectors, ecurves, lcs = \
         eigen.mkcurves(star, nlcs, lmax, ncurves, cfg.twod.use_y00)
         
@@ -154,10 +177,9 @@ def create_eigens(cfile):
         np.savetxt(f"{eigen_path}/lcs.txt",lcs)
 
 
-    print("----------------------------------------------------------------------------")
-    print()
-    print("Finding rank of the ecurve design matrix:")
-    print("----------------------------------------------------------------------------")
+    se("----------------------------------------------------------------------------",dp = dpm)
+    se("\nFinding rank of the ecurve design matrix:",dp = dpm)
+    se("----------------------------------------------------------------------------",dp = dpm)
     ecurve_A = ecurves.T
 
     ecurve_R = np.empty((1, lmax))
@@ -167,10 +189,9 @@ def create_eigens(cfile):
     ]
 
     #Display rank for each spherical harmonic degree of the ecurve design matrix
-    print(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(ecurve_A.shape[1])}) is {int(ecurve_R[-1])}\033[0m")
-    print()
-    print("\tNote, the ecurve design matrix does not include the uniform map\n\tand thus the rank should one less than the spherical harmonic result.")  
-    print("----------------------------------------------------------------------------")
+    se(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(ecurve_A.shape[1])}) is {int(ecurve_R[-1])}\033[0m",dp = dpm)
+    se("\n\tNote, the ecurve design matrix does not include the uniform map\n\tand thus the rank should one less than the spherical harmonic result.",dp = dpm)  
+    se("----------------------------------------------------------------------------",dp = dpm)
     return eigeny, evalues, evectors, ecurves, lcs, star, fit
     
 
@@ -180,19 +201,21 @@ def create_eigens(cfile):
 
 
 if __name__ == "__main__":
-    """
-    """
-    # print(sys.argv) #Uncomment if you want to see command line arguments 
+    # Uncomment if you want to see command line arguments 
+    # se(sys.argv,dp = dpm) 
+
+    # Check command line input is correct
     if len(sys.argv) < 2:
-        print()
-        print("----------------------------------------------------------------------------")
-        print('\033[31mERROR:\033[0m' + ' Call structure is "\033[34mpython create_eigens.py <configuration file>\033[0m"')
-        print("----------------------------------------------------------------------------")
+        se("\n----------------------------------------------------------------------------",dp = dpm)
+        se('\033[31mERROR:\033[0m' + ' Call structure is "\033[34mpython create_eigens.py <configuration file>\033[0m"',dp = dpm)
+        se("----------------------------------------------------------------------------",dp = dpm)
         sys.exit()
     else:
         cfile = sys.argv[1]
 
+    # Call create_eigens function
     create_eigens(cfile)
-    
-    print("done")
+
+    sys.exit("\033[32mdone\033[0m")
+
 

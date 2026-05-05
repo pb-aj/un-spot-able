@@ -603,7 +603,7 @@ class MapBase(object):
         interval = kwargs.pop("interval", 75)
         file = kwargs.pop("file", None)
         html5_video = kwargs.pop("html5_video", True)
-        dpi = kwargs.pop("dpi", None)
+        dpi = kwargs.pop("dpi", 300)
         figsize = kwargs.pop("figsize", None)
         bitrate = kwargs.pop("bitrate", None)
         colorbar = kwargs.pop("colorbar", False)
@@ -1014,7 +1014,7 @@ class MapBase(object):
                     fig.subplots_adjust(
                         left=0.01, right=0.99, bottom=0.01, top=0.99
                     )
-                fig.savefig(file, bbox_inches="tight",transparent=transparent)
+                fig.savefig(file, bbox_inches="tight",transparent=transparent,dpi=dpi)
                 if not custom_ax:
                     plt.close()
             elif not custom_ax:

@@ -3,13 +3,9 @@ File to read in configuration file.
 Code sourced from: https://github.com/rychallener/theresa
 Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
 
-Modifications made by A.J. deVaux (https://github.com/pb-aj)
+Modifications made by A.J. deVaux (https://github.com/pb-aj/un-spot-able)
 """
 
-import os
-import sys
-import numpy as np
-import pickle
 import configparser as cp
 import configclass as cc
 

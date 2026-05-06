@@ -1,12 +1,9 @@
 """
 File to create visualization of all eigenmaps & their respective lightcurves
-[insert citation for my paper and also github here]
+https://github.com/pb-aj/un-spot-able
 
 Plots adapted from: https://github.com/rychallener/theresa
 Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
-
-
-(If theano shuts down and says 'constant folding error', see note in create_eigens.py)
 """
 
 #general imports
@@ -17,6 +14,8 @@ import numpy as np
 import matplotlib as mpl
 mpl.rcParams['axes.formatter.useoffset'] = False
 import matplotlib.pyplot as plt
+import faulthandler
+faulthandler.enable()
 
 # Directory structure
 maindir    = os.path.dirname(os.path.realpath(__file__))
@@ -24,7 +23,6 @@ libdir     = os.path.join(maindir, 'lib')
 
 # lib imports
 sys.path.append(libdir)
-from lib import plots
 from lib.spotable import spotable as se
 
 
@@ -42,6 +40,21 @@ sys.setrecursionlimit(10000) # starry seems to have a lot of recursion
 dpm = True #change to False to make quiet
 
 def set_emap_directory(fit):
+    """
+    Function generates various plots associated with the eigenmaps (emaps)  
+    Can be set to have different projection styles  
+    Will always create overall emap plot and is set by default to create individual as well
+
+    Arguments
+    ---------
+    fit: fit class (defined in lib/fitclass.py)
+        stored fit values read from cfg
+
+    Returns
+    -------
+    emaps_path : string
+        path to save eigenmap (emap) plots to
+    """
     cfg = fit.cfg
 
     subdir = cfg.folder
@@ -54,6 +67,81 @@ def set_emap_directory(fit):
         os.mkdir(emaps_path)
 
     return emaps_path
+
+def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, 
+                 transparent=False, colorbar=True, smooth=True):
+    
+    """
+    Function generates a single emap projection depending on passed star
+    Can be set to have different projection styles 
+
+    Arguments
+    ---------
+    star: object
+        A starry star object, initialized with a cfg file
+
+    indiv_path: string (optional)
+        Path to folder where emap plot will be saved.  If None, will display image instead of saving
+
+    proj: str (optional)
+        Type of projection to use in 2D plots of eigenmaps
+
+    *NOTE* Remaining agruments are optional and used to adjust final plot.  These are useful when using code
+    to prepare a presentation/paper but not needed for general use
+
+    transparent: boolean (optional)
+        Whether to make plots transparent.  Default to False
+
+    colorbar: boolean (optional)
+        If True, will generate colorbar on individual emap plots.  Default is True
+
+    smooth: boolean (optional)
+        If True, will generate smoothed individual emap plots.  Default is True
+
+    Returns
+    -------
+    None
+    """
+
+    if proj == 'ortho':
+        extent = (-90, 90, -90, 90)
+        fname = 'emap-ortho.png'
+    elif proj == 'rect':
+        extent = (-180, 180, -90, 90)
+        fname = 'emap-rect.png'
+    elif proj == 'moll':
+        extent = (-180, 180, -90, 90)
+        fname = 'emap-moll.png'
+
+    if other_fname:
+        fname = other_fname
+
+    if indiv_path:
+
+        if smooth:
+
+            if proj == 'ortho':
+                temp_fig = plt.figure()
+            else:
+                temp_fig = plt.figure(figsize=(12, 5))
+            image = star.map.render(projection=proj,rv=False).eval()
+            plt.imshow(image, origin="lower", cmap="plasma", extent=extent)
+            plt.xlabel("Longitude [deg]")
+            plt.ylabel("Latitude [deg]")
+            if colorbar:
+                plt.colorbar()
+            plt.tight_layout()
+            plt.savefig(f"{indiv_path}/{fname}", dpi = 300, transparent=transparent)
+            pass
+        else:
+            star.map.show(theta=0,projection=proj,rv=False,file=f"{indiv_path}/{fname}",
+                        dpi=300,transparent=transparent, colorbar=colorbar)
+    else:
+        star.map.show(theta=0,projection=proj,rv=False,
+                        dpi=300,transparent=transparent, colorbar=colorbar)
+    
+    plt.close("all")
+    
 
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', 
                  transparent=False, labels=False, individual=True,
@@ -105,7 +193,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
     """    
 
     
-    se("\tPlotting eigenmaps", dp = dpm)
+    se("\tPlotting eigenmaps:", dp = dpm)
     se("\t------------------------------------------------", dp = dpm)
 
     ncurves, ny = eigeny.shape
@@ -151,28 +239,13 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
                 if not os.path.isdir(indiv_path):
                     os.mkdir(indiv_path)
-                
-                if smooth:
-                    if proj == 'ortho':
-                        temp_fig = plt.figure()
-                    else:
-                        temp_fig = plt.figure(figsize=(12, 5))
-                    image = star.map.render(projection=proj).eval()
-                    plt.imshow(image, origin="lower", cmap="plasma", extent=extent)
-                    plt.xlabel("Longitude [deg]")
-                    plt.ylabel("Latitude [deg]")
-                    if colorbar:
-                        plt.colorbar()
-                    plt.tight_layout()
-                    plt.savefig(f"{indiv_path}/map_{j}", dpi = 300,transparent=transparent)
-                    plt.close(temp_fig)
-                    pass
-                else:
-                    star.map.show(theta=0,projection=proj,file=f"{indiv_path}/map_{j}",
-                              dpi=300,transparent=transparent, colorbar=colorbar)
+
             else:
-                star.map.show(theta=0,projection=proj,
-                              dpi=300,transparent=transparent, colorbar=colorbar)
+                indiv_path = None
+
+            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", 
+                 transparent=transparent, colorbar=colorbar, smooth=smooth)
+            
             
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_ticks([])
@@ -192,14 +265,14 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
         plt.savefig(os.path.join(emaps_path, fname), transparent=transparent, dpi=300)
     else:
         plt.show()
-    
-    plt.close(fig)
 
     # Resetting star to be uniform map
     star.map[0,0] = 1
     star.map[1:,:] = 0
 
     se("\t------------------------------------------------", dp = dpm)
+
+    plt.close('all')
 
     return None
 
@@ -242,7 +315,7 @@ def create_eflux(star, eigeny, emaps_path=None,
     """    
 
     
-    se("\tPlotting light curves", dp = dpm)
+    se("\tPlotting light curves:", dp = dpm)
     se("\t------------------------------------------------", dp = dpm)
 
     ncurves, ny = eigeny.shape
@@ -289,13 +362,14 @@ def create_eflux(star, eigeny, emaps_path=None,
     
     fig.tight_layout()
     plt.savefig(f"{emaps_path}/all_rlc", transparent=transparent, dpi=300)
-    plt.close(fig)
 
     # Resetting star to be uniform map
     star.map[0,0] = 1
     star.map[1:,:] = 0
 
     se("\t------------------------------------------------", dp = dpm)
+
+    plt.close('all')
 
     return None
 
@@ -320,7 +394,7 @@ if __name__ == "__main__":
     se("\n\033[32mCalling create_eigens:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)
     eigeny, evalues, evectors, ecurves, lcs, star, fit = \
-        create_eigens.create_eigens(cfile,prompt_user=False)
+        create_eigens.create_eigens(cfile,prompt_user=True)
     
     se("\n\033[32mCreating emap visualizations:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)

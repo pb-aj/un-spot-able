@@ -1,12 +1,6 @@
 """
 File to create eigens, check their rank, and save them for a stellar system 
-[insert citation for my paper and also github here]
-
-
-If theano shuts down and says 'constant folding error', may need to run line akin to:
-rm /Users/[insert your username]/.theano/compiledir_macOS-26.4-arm64-arm-64bit-arm-3.10.17-64/.lock 
-in terminal to get theano to work.  If this does not work, the error message should have 
-the exact directory to insert after 'rm.'  Otherwise, post on the github.
+https://github.com/pb-aj/un-spot-able
 """
 
 

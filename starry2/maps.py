@@ -601,6 +601,8 @@ class MapBase(object):
         cmap = kwargs.pop("cmap", "plasma")
         grid = kwargs.pop("grid", True)
         interval = kwargs.pop("interval", 75)
+        #Added fps setting for gifs
+        fps = kwargs.pop("fps",50)
         file = kwargs.pop("file", None)
         html5_video = kwargs.pop("html5_video", True)
         dpi = kwargs.pop("dpi", 300)
@@ -839,8 +841,6 @@ class MapBase(object):
 
             if extra_image and extra_lines:
 
-                # print("1")
-
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
                 lonlines_list = [lonlines,extra_image[2]]
@@ -958,11 +958,11 @@ class MapBase(object):
             # Business as usual
             if (file is not None) and (file != ""):
                 if file.endswith(".mp4"):
-                    ani.save(file, writer="ffmpeg", dpi=dpi, bitrate=bitrate,savefig_kwargs={"transparent": transparent})
+                    ani.save(file, writer="ffmpeg", dpi=dpi, bitrate=bitrate)
                     plt.close()
                 elif file.endswith(".gif"):
                     ani.save(
-                        file, writer="imagemagick", dpi=dpi, bitrate=bitrate,savefig_kwargs={"transparent": transparent})
+                        file, writer="pillow", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": transparent})
                 else:
                     # Try and see what happens!
                     ani.save(file, dpi=dpi, bitrate=bitrate, savefig_kwargs={"transparent": transparent})
@@ -1480,7 +1480,8 @@ class YlmBase(legacy.YlmBase):
             lat, lon, self._y, self._u, self._f, theta, ld
         )
 
-    def render(self, res=300, projection="ortho", theta=0.0):
+    #added in RV parameter to allow for more general function building with starry
+    def render(self, res=300, projection="ortho", theta=0.0, rv=False):
         """Compute and return the intensity of the map on a grid.
 
         Returns an image of shape ``(res, res)``, unless ``theta`` is a vector,

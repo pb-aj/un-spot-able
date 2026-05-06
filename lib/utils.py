@@ -3,11 +3,15 @@ File to set up stellar system and parameters in starry
 Code sourced from: https://github.com/rychallener/theresa
 Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
 
-Modifications made by A.J. deVaux (https://github.com/pb-aj)
+Modifications made by A.J. deVaux (https://github.com/pb-aj/un-spot-able)
 """
 
 import numpy as np
 import starry2 as starry
+from spotable import spotable as se
+
+# Whether or not to show print statements in code
+dpm = True #change to False to make quiet
 
 def initstar(fit, ydeg, udeg=[], include_rv=False):
     """
@@ -59,12 +63,20 @@ def initstar(fit, ydeg, udeg=[], include_rv=False):
 
     # Set equitorial velocity of star object
     if include_rv:
-        print("add check for if the veq listed is physical for radius and prot")
+        try:
+            veq_calc = ((star.r * 6.957e8) * np.pi * 2 / (star.prot * 86400)).eval()
+        except:
+            veq_calc = False
+
         if cfg.star.veq == 0:
-            veq_calc = (star.r * 6.957e8) * np.pi * 2 / (star.prot * 86400)
-            star.map.veq = float('%.2g' % veq_calc.eval())
+            star.map.veq = float('%.2g' % veq_calc)
         else:
             star.map.veq = cfg.star.veq
+
+            if not veq_calc * .95 <= cfg.star.veq <= veq_calc * 1.05:
+                se("----------------------------------------------------------------------------",dp = dpm)
+                se("\033[31mWARNING:\033[0m Equitorial Velocity is not physical!",dp = dpm)
+                se("----------------------------------------------------------------------------",dp = dpm)
 
     return star
 

@@ -1,3 +1,9 @@
+"""
+File set up configuration class used in fitclass.py
+Code sourced from: https://github.com/rychallener/theresa
+Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
+"""
+
 class Configuration:
     """
     A class to hold parameters from a configuration file.

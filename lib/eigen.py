@@ -3,7 +3,7 @@ File to calculate eigens following eigenmapping process.
 Code sourced from: https://github.com/rychallener/theresa
 Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
 
-Modifications made by A.J. deVaux (https://github.com/pb-aj)
+Modifications made by A.J. deVaux (https://github.com/pb-aj/un-spot-able)
 """
 
 import numpy as np

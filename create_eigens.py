@@ -35,7 +35,7 @@ starry.config.lazy = True
 sys.setrecursionlimit(10000) # starry seems to have a lot of recursion
 
 # Whether or not to show print statements in code
-dpm = False #change to False to make quiet
+dpm = True #change to False to make quiet
 
 def create_eigens(cfile, prompt_user=True):
     """

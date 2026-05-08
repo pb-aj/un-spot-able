@@ -70,8 +70,8 @@ def set_emap_directory(fit):
     return emaps_path
 
 def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, 
-                 transparent=False, colorbar=True, smooth=True, fontsize=16,
-                 labels=True, border=True, ticks=True, gridlines=False):
+                 transparent=False, colorbar=True, colorbar_label = True, smooth=True, fontsize=16,
+                 labels=True, border=True, ticks=True, gridlines=False, gridcolor="k"):
     
     """
     Function generates a single emap projection depending on passed star
@@ -97,6 +97,9 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
     colorbar: boolean (optional)
         If True, will generate colorbar on individual emap plots.  Default is True
 
+    colorbarlabel: boolean (optional)
+        If True, will generate a label for the colorbar on individual emap plots.  Default is True
+
     smooth: boolean (optional)
         If True, will generate smoothed individual emap plots.  Default is True
 
@@ -118,6 +121,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
     gridlines: boolean (optional)
         If True, will include grid lines.  Default is False
         Only works for proj="rect"
+
+    gridcolor: string (optional)
+        Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
+        Default is 'darkgrey'.
 
     Returns
     -------
@@ -147,7 +154,9 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
         plt.imshow(image, origin="lower", cmap="plasma", extent=extent)
 
         if colorbar:
-            plt.colorbar()
+            cbar = plt.colorbar()
+            if colorbar_label:
+                cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 10)
 
         if labels:
 
@@ -162,7 +171,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
 
 
         if gridlines and proj == "rect":
-            plt.grid(color="k",linestyle=":")
+            plt.grid(color=gridcolor,linestyle=":")
 
         if not ticks or proj != "rect":
             plt.gca().set_xticklabels([])
@@ -191,7 +200,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
 
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', 
                  transparent=False, a_labels=False, a_border=False, 
-                 a_ticks=False, a_gridlines=False, fontsize=16,
+                 a_ticks=False, a_gridlines=False, a_gridcolor="k", fontsize=16,
                  individual=True, colorbar=True, smooth=True):
     
     """
@@ -232,6 +241,10 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
     a_gridlines: boolean (optional)
         If True, will add grid lines to overall plot.  Default is False
+
+    a_gridcolor: string (optional)
+        Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
+        Default is 'darkgrey'.
 
     fontsize: int (optional)
         Sets size of axis labels and title (1.5x axis).  Default is 24
@@ -301,7 +314,8 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
                 os.mkdir(indiv_path)
 
             emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", 
-                 transparent=transparent, colorbar=colorbar, smooth=smooth)
+                 transparent=transparent, colorbar=colorbar, smooth=smooth, gridlines=a_gridlines,
+                 gridcolor=a_gridcolor)
 
 
         if not a_ticks:
@@ -313,7 +327,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
             ax.set_frame_on(False)
 
         if a_gridlines:
-            ax.grid(color="k",linestyle=":")
+            ax.grid(color=a_gridcolor,linestyle=":")
 
     if a_labels:
         fig.supxlabel("Longitude [deg]",fontsize=fontsize)
@@ -343,8 +357,8 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
 def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360),
                  transparent=False, fontsize=16, a_gridlines=False,
-                 a_labels=False, a_border=False, a_ticks=False,
-                 individual=True):
+                 a_labels=False, a_border=False, a_ticks=False, a_gridcolor="darkgrey",
+                 individual=True, color="darkcyan"):
 
     """
     Function generates overall and individual light curve (lc) plots for each eigenmap (emap)  
@@ -387,9 +401,17 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
     a_ticks: boolean (optional)
         If True, will add ticks and values to overall plot.  Default is False
 
+    a_gridcolor: string (optional)
+        Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
+        Default is 'darkgrey'.
+
     indiviudal: boolean (optional)
         If True, will generate individual emap plots along with overall.  Default is True
         Will not generate if no path set to avoid clutter in image display.
+
+    color: string (optional)
+        Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
+        Default is 'darkcyan'.
 
     Returns
     -------
@@ -424,7 +446,7 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
 
         j_flux = star.map.flux(theta=theta).eval()
         
-        ax.plot(theta, j_flux)
+        ax.plot(theta, j_flux,color=color)
 
         if individual and emaps_path:
             indiv_path = os.path.join(emaps_path, f"rlc")
@@ -432,7 +454,8 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
             if not os.path.isdir(indiv_path):
                 os.mkdir(indiv_path)
             
-            create_rv.flux_rv_line(star,theta,flux=j_flux,flux_name=f"{indiv_path}/rlc_{j}",flux_only=True)
+            create_rv.flux_rv_line(star,theta,flux=j_flux,flux_name=f"{indiv_path}/rlc_{j}",flux_only=True,
+                                   color=color,gridlines=a_gridlines,gridcolor=a_gridcolor)
 
         if not a_ticks:
             ax.set_xticklabels([])
@@ -458,7 +481,7 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
             ax.set_frame_on(False)
 
         if a_gridlines:
-            ax.grid(color="k",linestyle=":")
+            ax.grid(color=a_gridcolor,linestyle=":")
 
     se(f"\tGenerating overall light curve plot", dp = dpm)
 

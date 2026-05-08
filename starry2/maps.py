@@ -343,7 +343,7 @@ class MapBase(object):
                 lonlines[n].set_ydata(l[1])
         return tuple(images + lonlines + latlines + borders)
     
-    def _updatefig2(
+    def _updatefig_maps(
         self,
         i,
         img_list,
@@ -380,9 +380,10 @@ class MapBase(object):
 
                 lonlines2[n].set_xdata(l[0])
                 lonlines2[n].set_ydata(l[1])
+
         return tuple(images + lonlines + images2 + lonlines2 + latlines_list[0] + borders + latlines_list[1])
     
-    def _updatefig3(
+    def _updatefig_all(
         self,
         i,
         img_list,
@@ -398,11 +399,15 @@ class MapBase(object):
         extra_lines,
         legend_list,
     ):
+        
+
         img_list[0].set_array(image_list[0][i])
         images = [img_list[0]]
 
         img_list[1].set_array(image_list[1][i])
         images2 = [img_list[1]]
+
+
         if overlay is not None:
             img_overlay.set_array(overlay[i])
             images += [img_overlay]
@@ -433,20 +438,42 @@ class MapBase(object):
 
         flux_image[0].set_ydata(new_flux_data)
 
+        #this stops updating it
+        if i > 1:
+            flux_image[0].set_ydata(np.zeros(len(new_flux_data)))
+
         rv_image[0].set_ydata(new_rv_data)
 
         middle = flux_data.shape[0]//2
 
-        legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2f}")
-        legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2f}")
+        if legend_list and grid:
+            legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2g}")
+            legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2g}")
 
             
 
-        return tuple(images + lonlines + images2 + lonlines2 
+            return tuple(images + lonlines + images2 + lonlines2 
                      + latlines_list[0] + borders + latlines_list[1]
                      + flux_image + rv_image + legend_list)
+        
+        elif legend_list:
+            legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2g}")
+            legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2g}")
+
+            return tuple(images + images2 
+                     + borders
+                     + flux_image + rv_image + legend_list)
+        elif grid:
+            return tuple(images + lonlines + images2 + lonlines2 
+                     + latlines_list[0] + borders + latlines_list[1]
+                     + flux_image + rv_image)
+        
+        else:
+            return tuple(images + images2
+                     + borders
+                     + flux_image + rv_image)
     
-    def _updatefig4(
+    def _updatefig_line(
         self,
         i,
         img_list,
@@ -490,14 +517,20 @@ class MapBase(object):
 
         middle = limb_data.shape[0]//2
 
-        legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
-        legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
+        if legend_list:
+            legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
+            legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
 
-            
+                
 
-        return tuple(images + lonlines
-                     + latlines_list[0] + borders
-                     + limb_image + legend_list)
+            return tuple(images + lonlines
+                        + latlines_list[0] + borders
+                        + limb_image + legend_list)
+
+        else:
+            return tuple(images + lonlines
+                        + latlines_list[0] + borders
+                        + limb_image)
 
     def reset(self, **kwargs):
         """Reset all map coefficients and attributes.
@@ -609,6 +642,8 @@ class MapBase(object):
         figsize = kwargs.pop("figsize", None)
         bitrate = kwargs.pop("bitrate", None)
         colorbar = kwargs.pop("colorbar", False)
+        colorbar_label = kwargs.pop("colorbar_label", None)
+        #added label for colorbar
         colorbar_size = kwargs.pop("colorbar_size", "5%")
         colorbar_pad = kwargs.pop("colorbar_pad", 0.05)
         show_image = kwargs.pop("show_image",True) #Adding option to not display the plot
@@ -824,7 +859,11 @@ class MapBase(object):
             cax = divider.append_axes(
                 position="bottom", size=colorbar_size, pad=colorbar_pad
             )
-            fig.colorbar(img, cax=cax, orientation="horizontal")
+            if colorbar_label:
+                cbar = fig.colorbar(img, cax=cax, orientation="horizontal")
+                cbar.set_label(colorbar_label, size=12)
+            else:
+                fig.colorbar(img, cax=cax, orientation="horizontal")
 
         # Add a colorbar
         elif colorbar:
@@ -834,12 +873,23 @@ class MapBase(object):
             cax = divider.append_axes(
                 position="right", size=colorbar_size, pad=colorbar_pad
             )
-            fig.colorbar(img, cax=cax, orientation="vertical")
+            if colorbar_label:
+                cbar = fig.colorbar(img, cax=cax, orientation="vertical")
+                cbar.set_label(colorbar_label, size=12)
+            else:
+                fig.colorbar(img, cax=cax, orientation="vertical")
 
         # Display or save the image / animation
         if animated:
 
+            if transparent and file.endswith(".gif"):
+                blit_status = False
+            else:
+                blit_status = True
+
             if extra_image and extra_lines:
+
+                print(blit_status)
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -848,7 +898,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig3,
+                    self._updatefig_all,
                     fargs=(
                         img_list,
                         image_list,
@@ -864,14 +914,12 @@ class MapBase(object):
                         legend_list,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
                 
 
             elif extra_image:
-
-                # print("2")
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -880,7 +928,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig2,
+                    self._updatefig_maps,
                     fargs=(
                         img_list,
                         image_list,
@@ -894,13 +942,11 @@ class MapBase(object):
                         kwargs,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
 
             elif extra_lines:
-
-                # print("3")
 
                 img_list = [img]
                 image_list = [image]
@@ -909,7 +955,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig4,
+                    self._updatefig_line,
                     fargs=(
                         img_list,
                         image_list,
@@ -926,7 +972,7 @@ class MapBase(object):
                         uni_int,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
                 
@@ -951,7 +997,7 @@ class MapBase(object):
                         kwargs,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
 
@@ -2107,13 +2153,13 @@ class LimbDarkenedBase(object):
     def _updatefig(i):
         return ()
     
-    def _updatefig2(i):
+    def _updatefig_maps(i):
         return ()
     
-    def _updatefig3(i):
+    def _updatefig_all(i):
         return ()
     
-    def _updatefig4(i):
+    def _updatefig_line(i):
         return ()
 
     def _get_flux_kwargs(self, kwargs):

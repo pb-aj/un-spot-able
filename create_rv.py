@@ -109,7 +109,8 @@ def adjust_star(star, lower_limit=0, uni_comp = None, iterator = .1):
     return None
 
 
-def rv_flux_map_ani(rv_star, theta, fname=None, interval=75, colorbar = 'bottom', transparent = True):
+def rv_flux_map_ani(rv_star, theta=np.linspace(0, 360, 360), fname=None, 
+                    interval=75, colorbar = 'bottom', transparent = True):
     """
     Generate an animated ortho projection of flux and RV side by side
     Does not generate the respective light or RV curves
@@ -157,7 +158,11 @@ def rv_flux_map_ani(rv_star, theta, fname=None, interval=75, colorbar = 'bottom'
     
     plt.close(fig)
 
-def flux_rv_line(rv_star,theta,flux_name=None,rv_name=None,flux_only=False,rv_only=False):
+
+def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
+                 flux_name=None,rv_name=None,flux_only=False,rv_only=False,
+                 transparent=False, labels=True, border=True, ticks=True, 
+                 gridlines=False, fontsize=16):
     """
     [desc]
 
@@ -173,30 +178,85 @@ def flux_rv_line(rv_star,theta,flux_name=None,rv_name=None,flux_only=False,rv_on
     """
 
     if not rv_only:
+        if flux is None:
+            flux = rv_star.map.flux(theta=theta).eval()
+        
         # Plot the flux
         plt.figure(figsize=(12, 5))
-        plt.plot(theta, rv_star.map.flux(theta=theta).eval())
-        plt.xlabel("Angle of rotation [degrees]", fontsize=24)
-        plt.ylabel("Flux [normalized]", fontsize=24)
+        plt.plot(theta, flux)
+
+        if labels:
+            plt.xlabel("Angle of rotation [degrees]", fontsize=fontsize)
+            plt.ylabel("Flux [normalized]", fontsize=fontsize)
+
+            if flux_name:
+                plt.title(f"Eigenmap {flux_name.split('_')[-1]} - Rotational Light Curve",fontsize=fontsize*1.5)
+            else:
+                plt.title("Eigenmap - Rotational Light Curve",fontsize=fontsize*1.5)
+
+        if gridlines:
+            plt.grid(color="k",linestyle=":")
+
+        if not ticks:
+            plt.gca().set_xticklabels([])
+            plt.gca().set_yticklabels([])
+            plt.tick_params(left=False, bottom=False)
+        else:
+            min_f = flux.min()
+            max_f = flux.max()
+            if max_f - min_f < 1e-10:
+                y_tick_values = [max_f - .02, max_f, max_f + .02] 
+                plt.yticks(y_tick_values)
+                plt.gca().set_yticklabels([f"{val:.3g}" for val in y_tick_values])
+                buffer = 0.005 
+                plt.ylim(y_tick_values[0] - buffer, y_tick_values[-1] + buffer)
+
+        if not border:
+            plt.gca().set_frame_on(False)
+
         plt.tight_layout()
         if flux_name:
-            plt.savefig(flux_name, dpi = 300)
+            plt.savefig(flux_name, dpi = 300, transparent=transparent)
         else:
             plt.show()
         plt.close()
 
     if not flux_only:
+        if rv is None:
+            rv = rv_star.map.rv(theta=theta).eval()
+
         # Plot the radial velocity
         plt.figure(figsize=(12, 5))
-        plt.plot(theta, rv_star.map.rv(theta=theta).eval())
-        plt.xlabel("Angle of rotation [degrees]", fontsize=24)
-        plt.ylabel("Radial velocity [m/s]", fontsize=24)
+        plt.plot(theta, rv)
+
+        if labels:
+            plt.xlabel("Angle of rotation [degrees]", fontsize=fontsize)
+            plt.ylabel("Radial velocity [m/s]", fontsize=fontsize)
+
+            if flux_name:
+                plt.title(f"Eigenmap {flux_name.split('_')[-1]} - RV Curve",fontsize=int(fontsize*1.5))
+            else:
+                plt.title("Eigenmap - RV Light Curve",fontsize=int(fontsize*1.5))
+
+        if gridlines:
+            plt.grid(color="k",linestyle=":")
+
+        if not ticks:
+            plt.gca().set_xticklabels([])
+            plt.gca().set_yticklabels([])
+            plt.tick_params(left=False, bottom=False)
+
+        if not border:
+            plt.gca().set_frame_on(False)
+        
         plt.tight_layout()
         if rv_name:
-            plt.savefig(rv_name, dpi = 300)
+            plt.savefig(rv_name, dpi = 300, transparent=transparent)
         else:
             plt.show()
         plt.close()
+
+    # sys.exit()
 
 
 

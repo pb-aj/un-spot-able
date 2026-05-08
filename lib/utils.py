@@ -56,6 +56,7 @@ def initstar(fit, ydeg, udeg=[], include_rv=False):
                           theta0=180)
 
     star.map.inc = cfg.star.inc
+    star.map.obl = cfg.star.obl
     
     # Set limb darkening parameters if any
     for i in range(len(udeg)):

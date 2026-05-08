@@ -132,6 +132,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
                 plt.colorbar()
             plt.tight_layout()
             plt.savefig(f"{indiv_path}/{fname}", dpi = 300, transparent=transparent)
+            plt.close(temp_fig)
             pass
         else:
             star.map.show(theta=0,projection=proj,rv=False,file=f"{indiv_path}/{fname}",
@@ -140,12 +141,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
         star.map.show(theta=0,projection=proj,rv=False,
                         dpi=300,transparent=transparent, colorbar=colorbar)
     
-    plt.close("all")
-    
 
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', 
-                 transparent=False, labels=False, individual=True,
-                 colorbar=True, smooth=True):
+                 transparent=False, labels=False, border=False, 
+                 individual=True, colorbar=True, smooth=True):
     
     """
     Function generates various plots associated with the eigenmaps (emaps)  
@@ -176,6 +175,9 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
     labels: boolean (optional)
         Wether to add axis and title labels to overall plot.  Default to False
+
+    border: boolean (optional)
+        Wether to add border around each axis plot.  Default to False
 
     indiviudal: boolean (optional)
         If True, will generate individual emap plots along with overall.  Default is True
@@ -246,10 +248,19 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
             emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", 
                  transparent=transparent, colorbar=colorbar, smooth=smooth)
             
-            
-        ax.get_xaxis().set_ticks([])
-        ax.get_yaxis().set_ticks([])
-        ax.set_frame_on(False)
+
+        if border:
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.tick_params(left=False, bottom=False)
+        else:
+            ax.axis('off')
+
+        # ax.get_xaxis().set_ticks([])
+        # ax.get_yaxis().set_ticks([])
+
+        # if not border:
+        #     ax.set_frame_on(False)
 
     if labels:
         fig.supxlabel("Longitude [deg]")
@@ -276,8 +287,8 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
     return None
 
-def create_eflux(star, eigeny, emaps_path=None,
-                 transparent=False, labels=False, individual=True):
+def create_eflux(star, eigeny, emaps_path=None, transparent=False, 
+                 labels=False, border=False, individual=True):
 
     """
     Function generates overall and individual light curve (lc) plots for each eigenmap (emap)  
@@ -304,6 +315,9 @@ def create_eflux(star, eigeny, emaps_path=None,
 
     labels: boolean (optional)
         Wether to add axis and title labels to overall plot.  Default to False
+
+    border: boolean (optional)
+        Wether to add border around each axis plot.  Default to False
 
     indiviudal: boolean (optional)
         If True, will generate individual emap plots along with overall.  Default is True.
@@ -339,7 +353,13 @@ def create_eflux(star, eigeny, emaps_path=None,
         ax = axes[yloc, xloc]
         
         ax.plot(theta, star.map.flux(theta=theta).eval())
-        ax.axis('off')
+
+        if border:
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.tick_params(left=False, bottom=False)
+        else:
+            ax.axis('off')
 
         if individual:
             if emaps_path:
@@ -356,8 +376,8 @@ def create_eflux(star, eigeny, emaps_path=None,
     se(f"\tGenerating overall light curve plot", dp = dpm)
 
     if labels:
-        fig.supxlabel("Longitude [deg]")
-        fig.supylabel("Latitude [deg]")
+        fig.supxlabel("Angle of rotation [degrees]")
+        fig.supylabel("Flux [normalized]")
         fig.suptitle(f"Eigenmaps - Rotational Light Curves")
     
     fig.tight_layout()

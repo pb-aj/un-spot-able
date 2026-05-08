@@ -42,5 +42,6 @@ class Fit:
         self.cfg.star.r    = self.cfg.cfg.getfloat('Star', 'r')
         self.cfg.star.prot = self.cfg.cfg.getfloat('Star', 'prot')
         self.cfg.star.inc = self.cfg.cfg.getfloat('Star', 'inc')
+        self.cfg.star.obl = self.cfg.cfg.getfloat('Star', 'obl')
         self.cfg.twod.udeg = [float(item.strip()) for item in self.cfg.cfg.get('Star', 'udeg').split(",")]
         self.cfg.star.veq = self.cfg.cfg.getfloat('Star', 'veq')

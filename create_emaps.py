@@ -287,8 +287,12 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
     ncols = int(np.sqrt(ncurves) // 1)
     nrows = int(ncurves // ncols + (ncurves % ncols != 0))
 
+    # if a_labels and a_ticks:
+    #     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
+    #                          sharex=True, sharey=True, figsize=(,10))
+    # else:
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
-                             sharex=True, sharey=True, figsize=(7,5))
+                             sharex=True, sharey=True, figsize=(10,7))
     
     if individual and emaps_path:
         se(f"\n\tGenerating indivdiual emap plots", dp = dpm)
@@ -314,8 +318,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
                 os.mkdir(indiv_path)
 
             emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", 
-                 transparent=transparent, colorbar=colorbar, smooth=smooth, gridlines=a_gridlines,
-                 gridcolor=a_gridcolor)
+                 transparent=transparent, colorbar=colorbar, smooth=smooth, gridcolor=a_gridcolor)
 
 
         if not a_ticks:
@@ -455,7 +458,7 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
                 os.mkdir(indiv_path)
             
             create_rv.flux_rv_line(star,theta,flux=j_flux,flux_name=f"{indiv_path}/rlc_{j}",flux_only=True,
-                                   color=color,gridlines=a_gridlines,gridcolor=a_gridcolor)
+                                   color=color,gridcolor=a_gridcolor)
 
         if not a_ticks:
             ax.set_xticklabels([])
@@ -536,7 +539,7 @@ if __name__ == "__main__":
     emaps_path = set_emap_directory(fit)
 
 
-    create_emaps(star, eigeny, emaps_path=emaps_path)
+    # create_emaps(star, eigeny, emaps_path=emaps_path)
 
     se("----------------------------------------------------------------------------", dp = dpm)
 

@@ -10,10 +10,17 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import starry2 as starry
 import faulthandler
 faulthandler.enable()
+
+# *NOTE* To have transparent gifs, need to install ImageMagick and set path to it here.
+# To find the correct path, can use which magick in terminal after installing
+try:
+    plt.rcParams['animation.convert_path'] = '/opt/homebrew/bin/magick'
+    pass
+except:
+    pass
 
 # Directory structure
 maindir    = os.path.dirname(os.path.realpath(__file__))
@@ -161,8 +168,8 @@ def rv_flux_map_ani(rv_star, theta=np.linspace(0, 360, 360), fname=None,
 
 def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
                  flux_name=None,rv_name=None,flux_only=False,rv_only=False,
-                 transparent=False, labels=True, border=True, ticks=True, 
-                 gridlines=False, fontsize=16, color="darkcyan", gridcolor="darkgrey"):
+                 transparent=False, labels=False, border=True, ticks=True, 
+                 gridlines=True, fontsize=16, color="darkcyan", gridcolor="darkgrey"):
     """
     [desc]
 
@@ -403,21 +410,19 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 360),fname=None,
                                 sharex=False, sharey=False, figsize=(12, 6))    
     else:
 
-        if maps_only:  
-            fig, axes = plt.subplots(nrows=1, ncols=2, squeeze=False,
-                                    sharex=False, sharey=False, figsize=(12, 6))
+        if maps_only:
+            pass  
+            # fig, axes = plt.subplots(nrows=1, ncols=2, squeeze=False,
+            #                         sharex=False, sharey=False, figsize=(12, 6))
         
-            img1,image1,lonlines1,latlines1 = rv_star.map.show(theta=theta,rv=False, 
-                                                            ax=axes[0,0],show_image=False, 
-                                                            colorbar=colorbar, transparent=transparent)
+            # img1,image1,lonlines1,latlines1 = rv_star.map.show(theta=theta,rv=False, 
+            #                                                 ax=axes[0,0],show_image=False, 
+            #                                                 colorbar=colorbar, transparent=transparent)
             
-            if map_border:
-                axes[0,0].set_frame_on(True)
-                axes[0,1].set_frame_on(True)
             
-            rv_star.map.show(theta=theta,rv=True, ax=axes[0,1],show_image=True, 
-                                extra_image=[img1,image1,lonlines1,latlines1],file=fname, 
-                                dpi = 300,interval=interval,colorbar=colorbar, transparent=transparent)
+            # rv_star.map.show(theta=theta,rv=True, ax=axes[0,1],show_image=True, 
+            #                     extra_image=[img1,image1,lonlines1,latlines1],file=fname, 
+            #                     dpi = 300,interval=interval,colorbar=colorbar, transparent=transparent)
             
             
         else:
@@ -545,6 +550,9 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 360)):
     se("\tLooping through each map and generating plots", dp=dpm)
     se("\t------------------------------------------------", dp = dpm)
     for i in range(ncurves):
+
+        i = 16
+
         se(f'\t\t\u2022 Adjusting "Emap {i}" to have only positive flux', dp=dpm)
         rv_star.map[:,:] = eigeny[i]
 
@@ -562,7 +570,7 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 360)):
         map_animations(rv_star,theta = np.linspace(0, 360, 60),fname=f"{indiv_path}/test_flux_map.gif", 
                    maps_only = False, flux_only = False, rv_only = False, color="darkcyan",
                    interval = ani_interval, fps = 10, fontsize=16, map_gridlines=True, 
-                   map_labels=True, colorbar="bottom", colorbar_label=True, transparent=True, 
+                   map_labels=True, colorbar="bottom", colorbar_label=True, transparent=False, 
                    curve_border=True, curve_labels=True, ticks=True, legend=True, curve_gridlines=False)
         
         sys.exit()

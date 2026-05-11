@@ -438,10 +438,6 @@ class MapBase(object):
 
         flux_image[0].set_ydata(new_flux_data)
 
-        #this stops updating it
-        if i > 1:
-            flux_image[0].set_ydata(np.zeros(len(new_flux_data)))
-
         rv_image[0].set_ydata(new_rv_data)
 
         middle = flux_data.shape[0]//2
@@ -881,15 +877,11 @@ class MapBase(object):
 
         # Display or save the image / animation
         if animated:
+                
 
-            if transparent and file.endswith(".gif"):
-                blit_status = False
-            else:
-                blit_status = True
+            blit_status = True
 
             if extra_image and extra_lines:
-
-                print(blit_status)
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -1007,8 +999,12 @@ class MapBase(object):
                     ani.save(file, writer="ffmpeg", dpi=dpi, bitrate=bitrate)
                     plt.close()
                 elif file.endswith(".gif"):
-                    ani.save(
-                        file, writer="pillow", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": transparent})
+                    if plt.rcParams['animation.convert_path'].endswith("magick") and transparent:
+                        ani.save(
+                            file, writer="imagemagick", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": True})
+                    else:
+                        ani.save(
+                            file, writer="pillow", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": False})
                 else:
                     # Try and see what happens!
                     ani.save(file, dpi=dpi, bitrate=bitrate, savefig_kwargs={"transparent": transparent})

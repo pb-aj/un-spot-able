@@ -34,14 +34,14 @@ class Fit:
         self.cfg.folder     = self.cfg.cfg.get('General', 'folder')
 
         #Simulation Parameters
-        self.cfg.twod.lmax = self.cfg.cfg.getint('Sim', 'lmax')
-        self.cfg.twod.nlcs = self.cfg.cfg.getint('Sim', 'nlcs')
-        self.cfg.twod.use_y00 = self.cfg.cfg.getboolean('Sim', 'use_y00')
+        self.cfg.sim.lmax = self.cfg.cfg.getint('Sim', 'lmax')
+        self.cfg.sim.nlcs = self.cfg.cfg.getint('Sim', 'nlcs')
+        self.cfg.sim.use_y00 = self.cfg.cfg.getboolean('Sim', 'use_y00')
 
         #Stellar Parameters
         self.cfg.star.r    = self.cfg.cfg.getfloat('Star', 'r')
         self.cfg.star.prot = self.cfg.cfg.getfloat('Star', 'prot')
         self.cfg.star.inc = self.cfg.cfg.getfloat('Star', 'inc')
         self.cfg.star.obl = self.cfg.cfg.getfloat('Star', 'obl')
-        self.cfg.twod.udeg = [float(item.strip()) for item in self.cfg.cfg.get('Star', 'udeg').split(",")]
+        self.cfg.star.udeg = [float(item.strip()) for item in self.cfg.cfg.get('Star', 'udeg').split(",")]
         self.cfg.star.veq = self.cfg.cfg.getfloat('Star', 'veq')

@@ -11,8 +11,7 @@ class Configuration:
     def __init__(self):
         self.planet = Planet()
         self.star   = Star()
-        self.twod   = TwoD()
-        self.threed = ThreeD()
+        self.sim   = Sim()
 
 class Planet:
     """
@@ -26,14 +25,8 @@ class Star:
     """
     pass
 
-class TwoD:
+class Sim:
     """
-    A class to hold 2D configuration options.
-    """
-    pass
-
-class ThreeD:
-    """
-    A class to hold 3D configuration options.
+    A class to hold simulation configuration options.
     """
     pass

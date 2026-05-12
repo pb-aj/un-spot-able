@@ -81,8 +81,8 @@ def create_eigens(cfile, prompt_user=True):
 
     cfg = fit.cfg
 
-    lmax = cfg.twod.lmax
-    udeg = cfg.twod.udeg
+    lmax = cfg.sim.lmax
+    udeg = cfg.star.udeg
 
     star = utils.initstar(fit, lmax, udeg=udeg)
 
@@ -100,9 +100,9 @@ def create_eigens(cfile, prompt_user=True):
     se(f"\t\033[1mThe rank (# non-null maps) for lmax = {lmax} (ncurves = {int(A.shape[1])}) is {int(R[-1])}\033[0m",dp = dpm) 
     se("\t------------------------------------------------\n",dp = dpm)
 
-    lmax = cfg.twod.lmax
+    lmax = cfg.sim.lmax
     ncurves = int((lmax + 1) ** 2 - 1)
-    nlcs = cfg.twod.nlcs
+    nlcs = cfg.sim.nlcs
 
     if not os.path.isdir(cfg.outdir):
         os.mkdir(cfg.outdir)
@@ -162,7 +162,7 @@ def create_eigens(cfile, prompt_user=True):
         se("----------------------------------------------------------------------------",dp = dpm)
         se(f"\tCalculating new eigen results and storing them in:\n\t\033[34m{eigen_path}\033[0m",dp = dpm)
         eigeny, evalues, evectors, ecurves, lcs = \
-        eigen.mkcurves(star, nlcs, lmax, ncurves, cfg.twod.use_y00)
+        eigen.mkcurves(star, nlcs, lmax, ncurves, cfg.sim.use_y00)
         
         np.savetxt(f"{eigen_path}/eigeny.txt", eigeny)
         np.savetxt(f"{eigen_path}/evalues.txt", evalues)

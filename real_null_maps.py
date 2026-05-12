@@ -2,9 +2,10 @@
 import os
 import sys
 import numpy as np
+import matplotlib
+matplotlib.rcParams['axes.formatter.useoffset'] = False
 import matplotlib.pyplot as plt
 import starry2 as starry
-
 import faulthandler
 faulthandler.enable()
 
@@ -115,9 +116,9 @@ def normalize_null_eigens(cfile):
     
 
     print("Creating a new star with rv=True")
-    lmax = cfg.twod.lmax
-    udeg = cfg.twod.udeg
-    nsamples = cfg.twod.nsamples
+    lmax = cfg.sim.lmax
+    udeg = cfg.star.udeg
+    nsamples = cfg.sim.nsamples
     rv_star = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
 
     theta = np.linspace(0, 360, 60)
@@ -167,8 +168,8 @@ def set_up_stars(cfile, eigeny, uni_comp = 1, theta_neg_90 = np.linspace(-90,90,
     cfg = fit.cfg
 
     print("Creating needed stars for Scaling")
-    lmax = cfg.twod.lmax
-    udeg = cfg.twod.udeg
+    lmax = cfg.sim.lmax
+    udeg = cfg.star.udeg
 
 
     #load in data/set up stars
@@ -436,9 +437,9 @@ if __name__ == "__main__":
     
 
     # print("Creating a new star with rv=True")
-    # lmax = cfg.twod.lmax
-    # udeg = cfg.twod.udeg
-    # nsamples = cfg.twod.nsamples
+    # lmax = cfg.sim.lmax
+    # udeg = cfg.star.udeg
+    # nsamples = cfg.sim.nsamples
     # rv_star = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
 
     # for eig in null_eigens:

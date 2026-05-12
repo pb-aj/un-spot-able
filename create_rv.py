@@ -8,6 +8,7 @@ import os
 import sys
 import numpy as np
 import matplotlib
+matplotlib.rcParams['axes.formatter.useoffset'] = False
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import starry2 as starry
@@ -402,6 +403,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 360),fname=None,
     """
 
     if rv_only or flux_only:
+        #write this so that if both rv_only and flux_only are True, it saves two figures like with the rv/flux curves
         if maps_only:
             fig, axes = plt.subplots(nrows=1, ncols=1, squeeze=False,
                                 sharex=False, sharey=False, figsize=(7, 5))
@@ -540,8 +542,8 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 360)):
 
     se("\tCreating a new star with rv=True\n",dp=dpm)
 
-    lmax = cfg.twod.lmax
-    udeg = cfg.twod.udeg
+    lmax = cfg.sim.lmax
+    udeg = cfg.star.udeg
     rv_star = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
     ncurves, ny = eigeny.shape
 

@@ -13,8 +13,8 @@ import starry2 as starry
 import numpy as np
 import matplotlib as mpl
 mpl.rcParams['axes.formatter.useoffset'] = False
-import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
+from cmcrameri import cm
 import faulthandler
 faulthandler.enable()
 
@@ -69,9 +69,9 @@ def set_emap_directory(fit):
 
     return emaps_path
 
-def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, 
+def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, center_flux=0,
                  transparent=False, colorbar=True, colorbar_label = True, smooth=True, fontsize=16,
-                 labels=True, border=True, ticks=True, gridlines=False, gridcolor="k"):
+                 labels=True, title=None, border=True, ticks=True, gridlines=False, gridcolor="k"):
     
     """
     Function generates a single emap projection depending on passed star
@@ -90,6 +90,13 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
 
     *NOTE* Remaining agruments are optional and used to adjust final plot.  These are useful when using code
     to prepare a presentation/paper but not needed for general use
+
+    cmap: str (optional)
+        What color map to use in plots.  Default is cm.bam
+        To use the original starry colors, set to 'plasma'
+    
+    center_flux: float (optional)
+        Value to center colorbar at.  Default is 0
 
     transparent: boolean (optional)
         Whether to make plots transparent.  Default to False
@@ -110,6 +117,9 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
 
     label: boolean (optional)
         If True, will generate axis and title labels.  Default is True
+
+    title: str (optional)
+        If value passed, will set it as the title.  Default is None
 
     border: boolean (optional)
         Wether to add border around each axis plot.  Default to True
@@ -151,7 +161,9 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
         else:
             temp_fig = plt.figure(figsize=(12, 5))
         image = star.map.render(projection=proj,rv=False).eval()
-        plt.imshow(image, origin="lower", cmap="plasma", extent=extent)
+
+        plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
+                   norm=mpl.colors.CenteredNorm(vcenter=center_flux))
 
         if colorbar:
             cbar = plt.colorbar()
@@ -164,10 +176,8 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
                 plt.xlabel("Longitude [deg]",fontsize=fontsize)
                 plt.ylabel("Latitude [deg]",fontsize=fontsize)
 
-            if other_fname:
-                plt.title(f"Eigenmap {other_fname.split('_')[-1]} - Rectangular Projection",fontsize=int(fontsize*1.5))
-            else:
-                plt.title("Eigenmap - Rectangular Projection",fontsize=int(fontsize*1.5))
+        if title:
+            plt.title(title,fontsize=int(fontsize*1.5))
 
 
         if gridlines and proj == "rect":
@@ -187,8 +197,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
             plt.savefig(f"{indiv_path}/{fname}", dpi = 300, transparent=transparent)
         else:
             plt.show()
+
         plt.close(temp_fig)
         pass
+
     else:
         if indiv_path:
             star.map.show(theta=0,projection=proj,rv=False,file=f"{indiv_path}/{fname}",
@@ -198,7 +210,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None,
                         dpi=300,transparent=transparent, colorbar=colorbar)
         
 
-def create_emaps(star, eigeny, emaps_path=None, proj='rect', 
+def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
                  transparent=False, a_labels=False, a_border=False, 
                  a_ticks=False, a_gridlines=False, a_gridcolor="k", fontsize=16,
                  individual=True, colorbar=True, smooth=True):
@@ -226,6 +238,13 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
     *NOTE* Remaining agruments are optional and used to adjust final plot.  These are useful when using code
     to prepare a presentation/paper but not needed for general use
+
+    cmap: str (optional)
+        What color map to use in plots.  Default is cm.bam
+        To use the original starry colors, set to 'plasma'
+    
+    center_flux: float (optional)
+        Value to center colorbar at for each plot.  Default is 0
 
     transparent: boolean (optional)
         Whether to make plots transparent.  Default to False
@@ -287,10 +306,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
     ncols = int(np.sqrt(ncurves) // 1)
     nrows = int(ncurves // ncols + (ncurves % ncols != 0))
 
-    # if a_labels and a_ticks:
-    #     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
-    #                          sharex=True, sharey=True, figsize=(,10))
-    # else:
+
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
                              sharex=True, sharey=True, figsize=(10,7))
     
@@ -306,10 +322,13 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
 
         rendered_map = star.map.render(theta=0, projection=proj).eval()
         
-        ax.imshow(rendered_map,
+        im = ax.imshow(rendered_map,
                   origin="lower",
-                  cmap="plasma",
-                  extent=extent)
+                  cmap=cmap,
+                  extent=extent,
+                  norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+        
+        fig.colorbar(im, ax=ax)
         
         if individual and emaps_path:
             indiv_path = os.path.join(emaps_path, f"{proj}_emaps")
@@ -317,7 +336,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect',
             if not os.path.isdir(indiv_path):
                 os.mkdir(indiv_path)
 
-            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", 
+            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", cmap = cmap, center_flux=center_flux, 
                  transparent=transparent, colorbar=colorbar, smooth=smooth, gridcolor=a_gridcolor)
 
 
@@ -539,7 +558,7 @@ if __name__ == "__main__":
     emaps_path = set_emap_directory(fit)
 
 
-    # create_emaps(star, eigeny, emaps_path=emaps_path)
+    create_emaps(star, eigeny, emaps_path=emaps_path)
 
     se("----------------------------------------------------------------------------", dp = dpm)
 

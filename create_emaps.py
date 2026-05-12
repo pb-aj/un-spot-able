@@ -71,7 +71,7 @@ def set_emap_directory(fit):
 
 def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, center_flux=0,
                  transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
-                 labels=True, title=None, border=True, ticks=True, gridlines=False, gridcolor="k"):
+                 labels=True, title=None, border=True, ticks=True, gridlines=True, gridcolor="k"):
     
     """
     Function generates a single emap projection depending on passed star
@@ -111,7 +111,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         Sets size of axis labels and title (1.5x axis).  Default is 24
 
     label: boolean (optional)
-        If True, will generate axis and title labels.  Default is True
+        If True, will generate axis labels.  Default is True
 
     title: str (optional)
         If value passed, will set it as the title.  Default is None
@@ -177,10 +177,19 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     if gridlines and proj == "rect":
         plt.grid(color=gridcolor,linestyle=":")
 
+
     if not ticks or proj != "rect":
         plt.gca().set_xticklabels([])
         plt.gca().set_yticklabels([])
         plt.tick_params(left=False, bottom=False)
+    else:
+        plt.gca().set_xticks([-135,-90,-45,0,45,90,135])
+        plt.gca().set_xticklabels([-135,-90,-45,0,45,90,135])
+
+        plt.gca().set_yticks([-60,-30,0,30,60])
+        plt.gca().set_yticklabels([-60,-30,0,30,60])
+
+        plt.tick_params(direction="in")
 
     if not border:
         plt.gca().set_frame_on(False)
@@ -197,8 +206,8 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         
 
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
-                 transparent=False, a_labels=False, a_border=False, 
-                 a_ticks=False, a_gridlines=False, a_gridcolor="k", fontsize=16,
+                 transparent=False, a_labels=True, a_title = None, a_border=True, 
+                 a_ticks=True, a_gridlines=True, a_gridcolor="k", fontsize=16,
                  individual=True, colorbar=True):
     
     """
@@ -236,7 +245,10 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
         Whether to make plots transparent.  Default to False
 
     a_labels: boolean (optional)
-        Wether to add axis and title labels to overall plot (a represents all).  Default to False
+        Wether to add axis labels to overall plot (a represents all).  Default to False
+
+    a_title: str (optional)
+        If value passed, will set it as the title.  Default is None
 
     a_border: boolean (optional)
         Wether to add border around each axis plot on overall plot.  Default to False
@@ -309,8 +321,6 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                   extent=extent,
                   norm=mpl.colors.CenteredNorm(vcenter=center_flux))
         
-        fig.colorbar(im, ax=ax)
-        
         if individual and emaps_path:
             indiv_path = os.path.join(emaps_path, f"{proj}_emaps")
 
@@ -321,21 +331,33 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                  transparent=transparent, colorbar=colorbar, gridcolor=a_gridcolor)
 
 
-        if not a_ticks:
+        if a_gridlines and proj == "rect":
+            ax.grid(color=a_gridcolor,linestyle=":")
+        
+
+        if not a_ticks or proj != "rect":
             ax.set_xticklabels([])
             ax.set_yticklabels([])
             ax.tick_params(left=False, bottom=False)
+        else:
+            ax.set_xticks([-90,0,90])
+            ax.set_xticklabels([-90,0,90])
+
+            ax.set_yticks([-45,0,45])
+            ax.set_yticklabels([-45,0,45])
+
+            ax.tick_params(direction="in")
         
         if not a_border:
             ax.set_frame_on(False)
-
-        if a_gridlines:
-            ax.grid(color=a_gridcolor,linestyle=":")
+            
 
     if a_labels:
         fig.supxlabel("Longitude [deg]",fontsize=fontsize)
         fig.supylabel("Latitude [deg]",fontsize=fontsize)
-        fig.suptitle(f"Eigenmaps - {proj.capitalize()} Projection",fontsize=int(fontsize*1.5))
+
+    if a_title:
+        fig.suptitle(a_title,fontsize=int(fontsize*1.5))
 
     fig.tight_layout()
 
@@ -359,9 +381,9 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
 
 def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360),
-                 transparent=False, fontsize=16, a_gridlines=False,
-                 a_labels=False, a_border=False, a_ticks=False, a_gridcolor="darkgrey",
-                 individual=True, color="darkcyan"):
+                 transparent=False, fontsize=16, a_centerline=True,
+                 a_labels=True, a_title = None, a_border=True, a_ticks=False, a_cline_color="k",
+                 individual=True, color="sandybrown"):
 
     """
     Function generates overall and individual light curve (lc) plots for each eigenmap (emap)  
@@ -396,7 +418,10 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
         If True, will add grid lines to overall plot.  Default is False
 
     a_labels: boolean (optional)
-        Wether to add axis and title labels to overall plot (a represents all).  Default to True
+        Wether to add axis labels to overall plot (a represents all).  Default to False
+
+    a_title: str (optional)
+        If value passed, will set it as the title.  Default is None
 
     a_border: boolean (optional)
         Wether to add border around each axis plot on overall plot.  Default to False
@@ -414,7 +439,9 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
 
     color: string (optional)
         Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
-        Default is 'darkcyan'.
+        Default is 'sandybrown'.
+
+    #Leaving this here because I like darkcyan with the plasma cmap (starry default)
 
     Returns
     -------
@@ -435,10 +462,6 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
     
     if individual and emaps_path:
         se(f"\tGenerating indivdiual light curve plots\n", dp = dpm)
-
-    if a_ticks:
-        t1 = theta.max()//6
-        x_tick_values = [t1, t1*5]
     
     for j in range(ncurves):
         star.map[:,:] = eigeny[j]
@@ -458,40 +481,56 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
                 os.mkdir(indiv_path)
             
             create_rv.flux_rv_line(star,theta,flux=j_flux,flux_name=f"{indiv_path}/rlc_{j}",flux_only=True,
-                                   color=color,gridcolor=a_gridcolor)
+                                   color=color)
 
         if not a_ticks:
             ax.set_xticklabels([])
             ax.set_yticklabels([])
             ax.tick_params(left=False, bottom=False)
         else:
-            
-            ax.set_xticks(x_tick_values)
-            ax.set_xticklabels([f"{val:.0f}" for val in x_tick_values])
+            ax.set_xticks([90,180,270])
+            ax.set_xticklabels([90,180,270])
+
+            ax.set_xlim(0,360)
+
+            ax.tick_params(direction="in")
 
             min_f = j_flux.min()
             max_f = j_flux.max()
-            if max_f - min_f > 1e-10:
-                y_tick_values = [min_f,max_f] 
+            if max_f - min_f < 1e-10:
+                interval = max_f * .05
+                y_tick_values = [max_f] 
+                ax.set_yticks(y_tick_values)
+                ax.set_yticklabels([f"{val:.2f}" for val in y_tick_values])
+                ax.set_ylim(min_f - interval * 1.05, max_f + interval * 1.05)
 
             else:
-                y_tick_values = [max_f]
-            ax.set_yticks(y_tick_values)
-            ax.set_yticklabels([f"{val:.2g}" for val in y_tick_values])
+                amp = max_f - min_f
+
+                buffer = 0.05 
+
+                middle = (max_f + min_f) / 2
+                y_tick_values = [min_f, middle, max_f] 
+                ax.set_yticks(y_tick_values)
+                ax.set_yticklabels([f"{val:.2f}" for val in y_tick_values])
+                ax.set_ylim(min_f - amp*buffer, max_f + amp*buffer)
 
         
         if not a_border:
             ax.set_frame_on(False)
 
-        if a_gridlines:
-            ax.grid(color=a_gridcolor,linestyle=":")
+        if a_centerline:
+            middle = (np.max(j_flux) + np.min(j_flux)) / 2
+            ax.axhline(y=middle,color=a_cline_color,linestyle=":")
 
     se(f"\tGenerating overall light curve plot", dp = dpm)
 
     if a_labels:
         fig.supxlabel("Angle of rotation [degrees]",fontsize=fontsize)
         fig.supylabel("Flux [normalized]",fontsize=fontsize)
-        fig.suptitle(f"Eigenmaps - Rotational Light Curves",fontsize=int(fontsize*1.5))
+
+    if a_title:
+        fig.suptitle(a_title,fontsize=int(fontsize*1.5))
     
     fig.tight_layout()
 

@@ -169,8 +169,8 @@ def rv_flux_map_ani(rv_star, theta=np.linspace(0, 360, 360), fname=None,
 
 def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
                  flux_name=None,rv_name=None,flux_only=False,rv_only=False,
-                 transparent=False, labels=False, border=True, ticks=True, 
-                 gridlines=True, fontsize=16, color="darkcyan", gridcolor="darkgrey"):
+                 transparent=False, labels=True, title = None, border=True, ticks=True, 
+                 centerline=True, fontsize=16, color="sandybrown", cline_color="k"):
     """
     [desc]
 
@@ -191,33 +191,53 @@ def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
         
         # Plot the flux
         plt.figure(figsize=(12, 5))
-        plt.plot(theta, flux,color=color)
+
+        plt.plot(theta, flux, color=color)
+
 
         if labels:
             plt.xlabel("Angle of rotation [degrees]", fontsize=fontsize)
             plt.ylabel("Flux [normalized]", fontsize=fontsize)
 
-            if flux_name:
-                plt.title(f"Eigenmap {flux_name.split('_')[-1]} - Rotational Light Curve",fontsize=fontsize*1.5)
-            else:
-                plt.title("Eigenmap - Rotational Light Curve",fontsize=fontsize*1.5)
+        if title:
+            plt.title(title,fontsize=fontsize*1.5)
 
-        if gridlines:
-            plt.grid(color=gridcolor,linestyle=":")
+        if centerline:
+            middle = (np.max(flux) + np.min(flux)) / 2
+            plt.axhline(y=middle,color=cline_color,linestyle=":")
 
         if not ticks:
             plt.gca().set_xticklabels([])
             plt.gca().set_yticklabels([])
             plt.tick_params(left=False, bottom=False)
         else:
-            min_f = flux.min()
-            max_f = flux.max()
+            plt.gca().set_xticks([45,90,135,180,225,270,315])
+            plt.gca().set_xticklabels([45,90,135,180,225,270,315])
+
+            plt.xlim(0,360)
+
+            min_f = np.min(flux)
+            max_f = np.max(flux)
+
+            plt.tick_params(direction="in")
+
             if max_f - min_f < 1e-10:
-                y_tick_values = [max_f - .02, max_f, max_f + .02] 
+                interval = max_f * .05
+                y_tick_values = [max_f - interval, max_f, max_f + interval] 
                 plt.yticks(y_tick_values)
-                plt.gca().set_yticklabels([f"{val:.3g}" for val in y_tick_values])
-                buffer = 0.005 
-                plt.ylim(y_tick_values[0] - buffer, y_tick_values[-1] + buffer)
+                plt.gca().set_yticklabels([f"{val:.2f}" for val in y_tick_values])
+                plt.ylim(min_f - interval * 1.05, max_f + interval * 1.05)
+
+            else:
+                amp = max_f - min_f
+
+                buffer = 0.05 
+
+                middle = (max_f + min_f) / 2
+                y_tick_values = [min_f, (min_f + middle) / 2, middle, (max_f + middle) / 2, max_f] 
+                plt.yticks(y_tick_values)
+                plt.gca().set_yticklabels([f"{val:.2f}" for val in y_tick_values])
+                plt.ylim(min_f - amp*buffer, max_f + amp*buffer)
 
         if not border:
             plt.gca().set_frame_on(False)
@@ -239,20 +259,26 @@ def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
 
         if labels:
             plt.xlabel("Angle of rotation [degrees]", fontsize=fontsize)
-            plt.ylabel("Radial velocity [m/s]", fontsize=fontsize)
+            plt.ylabel("Flux [normalized]", fontsize=fontsize)
 
-            if flux_name:
-                plt.title(f"Eigenmap {flux_name.split('_')[-1]} - RV Curve",fontsize=int(fontsize*1.5))
-            else:
-                plt.title("Eigenmap - RV Light Curve",fontsize=int(fontsize*1.5))
+        if title:
+            plt.title(title,fontsize=fontsize*1.5)
 
-        if gridlines:
-            plt.grid(color=gridcolor,linestyle=":")
+        if centerline:
+            middle = (np.max(flux) + np.min(flux)) / 2
+            plt.axhline(y=middle,color=cline_color,linestyle=":")
 
         if not ticks:
             plt.gca().set_xticklabels([])
             plt.gca().set_yticklabels([])
             plt.tick_params(left=False, bottom=False)
+
+        else:
+            plt.gca().set_xticks([45,90,135,180,225,270])
+            plt.gca().set_xticklabels([45,90,135,180,225,270])
+
+            plt.tick_params(direction="in")
+
 
         if not border:
             plt.gca().set_frame_on(False)
@@ -326,7 +352,7 @@ def multi_phase_plot(rv_star,fname=None):
 #                  gridlines=False, fontsize=16):
 
 def map_animations(rv_star,theta = np.linspace(0, 360, 360),fname=None, 
-                   maps_only = False, flux_only = False, rv_only = False, color="darkcyan",
+                   maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
                    interval = 75, fps = 50, fontsize=16, map_gridlines=True, map_labels=True,
                    colorbar="bottom", colorbar_label=True, transparent=False, marker_color = "darkgrey",
                    curve_border=True, curve_labels=True, ticks=True, legend=True, curve_gridlines=True):
@@ -481,7 +507,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 360),fname=None,
                 ax_rv.set_frame_on(False)
 
             # map_animations(rv_star,theta = np.linspace(0, 360, 360),fname=None, 
-            #        maps_only = False, flux_only = False, rv_only = False, color="darkcyan",
+            #        maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
             #        interval = 75, fps = 50, fontsize=16, map_gridlines=True, 
             #        map_border=True, map_labels=True, colorbar="bottom", transparent=False, 
             #        x curve_border=True, x curve_labels=True, x ticks=True, x legend=True, x curve_gridlines=True):
@@ -570,7 +596,7 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 360)):
             os.mkdir(indiv_path)
         
         map_animations(rv_star,theta = np.linspace(0, 360, 60),fname=f"{indiv_path}/test_flux_map.gif", 
-                   maps_only = False, flux_only = False, rv_only = False, color="darkcyan",
+                   maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
                    interval = ani_interval, fps = 10, fontsize=16, map_gridlines=True, 
                    map_labels=True, colorbar="bottom", colorbar_label=True, transparent=False, 
                    curve_border=True, curve_labels=True, ticks=True, legend=True, curve_gridlines=False)

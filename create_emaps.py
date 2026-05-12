@@ -70,7 +70,7 @@ def set_emap_directory(fit):
     return emaps_path
 
 def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, center_flux=0,
-                 transparent=False, colorbar=True, colorbar_label = True, smooth=True, fontsize=16,
+                 transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
                  labels=True, title=None, border=True, ticks=True, gridlines=False, gridcolor="k"):
     
     """
@@ -106,11 +106,6 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
     colorbarlabel: boolean (optional)
         If True, will generate a label for the colorbar on individual emap plots.  Default is True
-
-    smooth: boolean (optional)
-        If True, will generate smoothed individual emap plots.  Default is True
-
-    *NOTE* Remaining arguments only have an effect if smooth=True as starry does not have these options by default
 
     fontsize: int (optional)
         Sets size of axis labels and title (1.5x axis).  Default is 24
@@ -154,66 +149,57 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     if other_fname:
         fname = other_fname
 
-    if smooth:
 
-        if proj == 'ortho':
-            temp_fig = plt.figure(figsize=(7,5))
-        else:
-            temp_fig = plt.figure(figsize=(12, 5))
-        image = star.map.render(projection=proj,rv=False).eval()
-
-        plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
-                   norm=mpl.colors.CenteredNorm(vcenter=center_flux))
-
-        if colorbar:
-            cbar = plt.colorbar()
-            if colorbar_label:
-                cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 10)
-
-        if labels:
-
-            if proj == "rect":
-                plt.xlabel("Longitude [deg]",fontsize=fontsize)
-                plt.ylabel("Latitude [deg]",fontsize=fontsize)
-
-        if title:
-            plt.title(title,fontsize=int(fontsize*1.5))
-
-
-        if gridlines and proj == "rect":
-            plt.grid(color=gridcolor,linestyle=":")
-
-        if not ticks or proj != "rect":
-            plt.gca().set_xticklabels([])
-            plt.gca().set_yticklabels([])
-            plt.tick_params(left=False, bottom=False)
-
-        if not border:
-            plt.gca().set_frame_on(False)
-        
-        plt.tight_layout()
-        
-        if indiv_path:
-            plt.savefig(f"{indiv_path}/{fname}", dpi = 300, transparent=transparent)
-        else:
-            plt.show()
-
-        plt.close(temp_fig)
-        pass
-
+    if proj == 'ortho':
+        temp_fig = plt.figure(figsize=(7,5))
     else:
-        if indiv_path:
-            star.map.show(theta=0,projection=proj,rv=False,file=f"{indiv_path}/{fname}",
-                    dpi=300,transparent=transparent, colorbar=colorbar)
-        else:
-            star.map.show(theta=0,projection=proj,rv=False,
-                        dpi=300,transparent=transparent, colorbar=colorbar)
+        temp_fig = plt.figure(figsize=(12, 5))
+    image = star.map.render(projection=proj,rv=False).eval()
+
+    plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
+                norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+
+    if colorbar:
+        cbar = plt.colorbar()
+        if colorbar_label:
+            cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 10)
+
+    if labels:
+
+        if proj == "rect":
+            plt.xlabel("Longitude [deg]",fontsize=fontsize)
+            plt.ylabel("Latitude [deg]",fontsize=fontsize)
+
+    if title:
+        plt.title(title,fontsize=int(fontsize*1.5))
+
+
+    if gridlines and proj == "rect":
+        plt.grid(color=gridcolor,linestyle=":")
+
+    if not ticks or proj != "rect":
+        plt.gca().set_xticklabels([])
+        plt.gca().set_yticklabels([])
+        plt.tick_params(left=False, bottom=False)
+
+    if not border:
+        plt.gca().set_frame_on(False)
+    
+    plt.tight_layout()
+    
+    if indiv_path:
+        plt.savefig(f"{indiv_path}/{fname}", dpi = 300, transparent=transparent)
+    else:
+        plt.show()
+
+    plt.close(temp_fig)
+    pass
         
 
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
                  transparent=False, a_labels=False, a_border=False, 
                  a_ticks=False, a_gridlines=False, a_gridcolor="k", fontsize=16,
-                 individual=True, colorbar=True, smooth=True):
+                 individual=True, colorbar=True):
     
     """
     Function generates various plots associated with the eigenmaps (emaps)  
@@ -271,14 +257,9 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
     indiviudal: boolean (optional)
         If True, will generate individual emap plots along with overall.  Default is True
         Will not generate if no path set to avoid clutter in image display.
-        
-    *NOTE* If individual is False, colorbar and smooth parameters do nothing 
 
     colorbar: boolean (optional)
         If True, will generate colorbar on individual emap plots.  Default is True
-
-    smooth: boolean (optional)
-        If True, will generate smoothed individual emap plots.  Default is True
 
     Returns
     -------
@@ -337,7 +318,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                 os.mkdir(indiv_path)
 
             emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", cmap = cmap, center_flux=center_flux, 
-                 transparent=transparent, colorbar=colorbar, smooth=smooth, gridcolor=a_gridcolor)
+                 transparent=transparent, colorbar=colorbar, gridcolor=a_gridcolor)
 
 
         if not a_ticks:

@@ -72,7 +72,8 @@ def set_emap_directory(fit):
 
 def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, center_flux=0,
                  transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
-                 labels=True, title=None, border=True, ticks=True, gridlines=True, gridcolor="k"):
+                 labels=True, title=None, border=True, ticks=True, gridlines=True, 
+                 gridcolor="k",unseen_line=True):
     
     """
     Function generates a single emap projection depending on passed star
@@ -131,6 +132,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     gridcolor: string (optional)
         Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
         Default is 'darkgrey'.
+
+    unseen_line: boolean (optional)
+        Whether to include gridline that shows what is never visible according to star's inclination.
+        Default is False.  Only applies if gridlines=True
 
     Returns
     -------
@@ -194,25 +199,43 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
 
     if gridlines: 
+        if unseen_line:
+            unseen_degree = -1 * star.map.inc.eval()
+        else:
+            unseen_degree = None
+
         if proj == "rect":
             plt.grid(color=gridcolor,linestyle=":")
+            if not unseen_degree is None:
+                plt.axhline(unseen_degree, c="k",ls="-", lw=2, alpha=1, zorder=1)
+                plt.axhline(unseen_degree, c="deepskyblue",ls="-", lw=1.5, alpha=1, zorder=1)
+
+
         elif proj == "moll":
 
-            lats = lat_lon_lines.get_moll_latitude_lines()
+            lats = lat_lon_lines.get_moll_latitude_lines(unseen_deg=unseen_degree)
             latlines = [None for n in lats]
 
             for n, l in enumerate(lats):
-
-                (latlines[n],) = plt.plot(
-                    l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
-                )
+                
+                if unseen_line and n == len(lats) - 1:
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], c="k",ls="-", lw=2, alpha=1, zorder=1
+                    )
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], c="deepskyblue",ls="-", lw=1.5, alpha=1, zorder=1
+                    )
+                else:
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                    )
 
             lons = lat_lon_lines.get_moll_longitude_lines(dlon=45)
             lonlines = [None for n in lons]
             for n, l in enumerate(lons):
                 if (n == 0 or n == len(lons) - 1) and border:
                     (lonlines[n],) = plt.plot(
-                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=1
                     )
                 else:
                     (lonlines[n],) = plt.plot(
@@ -223,20 +246,28 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
             plt.xlim(-183,183)
 
         else:
-            lats = lat_lon_lines.get_ortho_latitude_lines()
+            lats = lat_lon_lines.get_ortho_latitude_lines(unseen_deg=unseen_degree)
             latlines = [None for n in lats]
 
             for n, l in enumerate(lats):
-                (latlines[n],) = plt.plot(
-                    l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
-                )
+                if unseen_line and n == len(lats) - 1:
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], c="k",ls="-", lw=1.5, alpha=1, zorder=1
+                    )
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], c="deepskyblue",ls="-", lw=1, alpha=1, zorder=1
+                    )
+                else:
+                    (latlines[n],) = plt.plot(
+                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                    )
 
             lons = lat_lon_lines.get_ortho_longitude_lines()
             lonlines = [None for n in lons]
             for n, l in enumerate(lons):
                 if n == 0 or n == (len(lons) - 1) and border:
                     (lonlines[n],) = plt.plot(
-                    l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                    l[0], l[1], "k-", lw=1.5, alpha=1, zorder=1
                     )
                 else:
                     (lonlines[n],) = plt.plot(
@@ -277,10 +308,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
         
 
-def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, center_flux=0,
+def create_emaps(star, eigeny, emaps_path=None, proj='ortho', cmap = cm.bam, center_flux=0,
                  transparent=False, a_labels=True, a_title = None, a_border=True, 
-                 a_ticks=True, a_gridlines=True, a_gridcolor="k", fontsize=16,
-                 individual=True, colorbar=True):
+                 a_ticks=True, a_gridlines=True, a_gridcolor="k", a_unseen_line=True,
+                 fontsize=16, individual=True, colorbar=True):
     
     """
     Function generates various plots associated with the eigenmaps (emaps)  
@@ -334,6 +365,10 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
     a_gridcolor: string (optional)
         Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
         Default is 'darkgrey'.
+
+    a_unseen_line: boolean (optional)
+        Whether to include gridline that shows what is never visible according to star's inclination.
+        Default is False.  Only applies if a_gridlines=True
 
     fontsize: int (optional)
         Sets size of axis labels and title (1.5x axis).  Default is 24
@@ -429,25 +464,42 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
 
         if a_gridlines:
+
+            if a_unseen_line:
+                unseen_degree = -1 * star.map.inc.eval()
+            else:
+                unseen_degree = None
+
             if proj == "rect":
                 ax.grid(color=a_gridcolor,linestyle=":")
+                if not unseen_degree is None:
+                    ax.axhline(unseen_degree, c="k",ls="-", lw=2, alpha=1, zorder=1)
+                    ax.axhline(unseen_degree, c="deepskyblue",ls="-", lw=1.5, alpha=1, zorder=1)
 
             elif proj == "moll":
-                lats = lat_lon_lines.get_moll_latitude_lines(dlat=30)
+                lats = lat_lon_lines.get_moll_latitude_lines(dlat=30,unseen_deg=unseen_degree)
                 latlines = [None for n in lats]
 
                 for n, l in enumerate(lats):
 
-                    (latlines[n],) = ax.plot(
-                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
-                    )
+                    if a_unseen_line and n == len(lats) - 1:
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], c="k",ls="-", lw=1, alpha=1, zorder=1
+                        )
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], c="deepskyblue",ls="-", lw=.5, alpha=1, zorder=1
+                        )
+                    else:
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                        )
 
                 lons = lat_lon_lines.get_moll_longitude_lines(dlon=60)
                 lonlines = [None for n in lons]
                 for n, l in enumerate(lons):
                     if (n == 0 or n == len(lons) - 1) and a_border:
                         (lonlines[n],) = ax.plot(
-                            l[0], l[1], "k-", lw=1, alpha=1, zorder=0
+                            l[0], l[1], "k-", lw=1, alpha=1, zorder=1
                         )
                     else:
                         (lonlines[n],) = ax.plot(
@@ -458,19 +510,27 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
                 ax.set_xlim(-183,183)
 
             else:
-                lats = lat_lon_lines.get_ortho_latitude_lines()
+                lats = lat_lon_lines.get_ortho_latitude_lines(unseen_deg=unseen_degree)
                 latlines = [None for n in lats]
                 for n, l in enumerate(lats):
-                    (latlines[n],) = ax.plot(
-                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
-                    )
+                    if a_unseen_line and n == len(lats) - 1:
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], c="k",ls="-", lw=1, alpha=1, zorder=1
+                        )
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], c="deepskyblue",ls="-", lw=.5, alpha=1, zorder=1
+                        )
+                    else:
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                        )
 
                 lons = lat_lon_lines.get_ortho_longitude_lines()
                 lonlines = [None for n in lons]
                 for n, l in enumerate(lons):
                     if n == 0 or n == (len(lons) - 1) and a_border:
                         (lonlines[n],) = ax.plot(
-                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=1
                         )
                     else:
                         (lonlines[n],) = ax.plot(
@@ -734,7 +794,7 @@ if __name__ == "__main__":
     se("\n\033[32mCreating light curve visualizations:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)
 
-    create_eflux(star, eigeny, emaps_path=emaps_path)
+    # create_eflux(star, eigeny, emaps_path=emaps_path)
 
     se("----------------------------------------------------------------------------", dp = dpm)
 

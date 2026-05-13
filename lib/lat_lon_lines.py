@@ -6,10 +6,13 @@ https://github.com/pb-aj/un-spot-able
 
 import numpy as np
 
-def get_moll_latitude_lines(dlat=30, npts=1000, niter=100):
+def get_moll_latitude_lines(dlat=30, npts=1000, niter=100,unseen_deg=None):
     res = []
     # Work in degrees for the range, then convert to radians for math
     latlines_deg = np.arange(-90, 90, dlat)[1:]
+
+    if not unseen_deg is None:
+        latlines_deg = np.append(latlines_deg, unseen_deg)
     
     for lat_deg in latlines_deg:
         lat_rad = np.deg2rad(lat_deg)
@@ -58,7 +61,7 @@ def get_moll_longitude_lines(dlon=30, npts=1000, niter=100):
     return res
 
 
-def get_ortho_latitude_lines(inc=90, obl=0, fproj=0, dlat=30, npts=1000):
+def get_ortho_latitude_lines(inc=90, obl=0, fproj=0, dlat=30, npts=1000,unseen_deg=None):
     # Convert inputs to radians for math
     inc_rad = np.deg2rad(inc)
     obl_rad = np.deg2rad(obl)
@@ -71,6 +74,9 @@ def get_ortho_latitude_lines(inc=90, obl=0, fproj=0, dlat=30, npts=1000):
     res = []
     # Latitude lines from -90 to 90
     latlines_deg = np.arange(-90, 90, dlat)[1:]
+
+    if not unseen_deg is None:
+        latlines_deg = np.append(latlines_deg, unseen_deg)
     
     for lat_deg in latlines_deg:
         lat_rad = np.deg2rad(lat_deg)

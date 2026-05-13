@@ -25,6 +25,7 @@ libdir     = os.path.join(maindir, 'lib')
 # lib imports
 sys.path.append(libdir)
 from lib.spotable import spotable as se
+from lib import lat_lon_lines
 
 
 # un-spot-able imports
@@ -136,14 +137,35 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     None
     """
 
+    image = star.map.render(theta=0,projection=proj,rv=False).eval()
+
     if proj == 'ortho':
-        extent = (-90, 90, -90, 90)
+        dx = 180.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+        extent = np.array([
+            -90 - dx,  # Left (padded by one pixel width)
+            90,       # Right
+            -90 - dy,   # Bottom (padded by one pixel height)
+            90         # Top
+        ])
+
         fname = 'emap-ortho.png'
     elif proj == 'rect':
         extent = (-180, 180, -90, 90)
         fname = 'emap-rect.png'
     elif proj == 'moll':
-        extent = (-180, 180, -90, 90)
+        dx = 360.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+
+        extent = np.array([
+            -180 - dx/2,  # Left (padded by one pixel width)
+            180 - dx/2,       # Right
+            -90 - dy/2,   # Bottom (padded by one pixel height)
+            90 - dy/2         # Top
+        ])
+
         fname = 'emap-moll.png'
 
     if other_fname:
@@ -154,7 +176,6 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         temp_fig = plt.figure(figsize=(7,5))
     else:
         temp_fig = plt.figure(figsize=(12, 5))
-    image = star.map.render(projection=proj,rv=False).eval()
 
     plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
                 norm=mpl.colors.CenteredNorm(vcenter=center_flux))
@@ -165,17 +186,68 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
             cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 10)
 
     if labels:
-
-        if proj == "rect":
-            plt.xlabel("Longitude [deg]",fontsize=fontsize)
-            plt.ylabel("Latitude [deg]",fontsize=fontsize)
+        plt.xlabel("Longitude [deg]",fontsize=fontsize)
+        plt.ylabel("Latitude [deg]",fontsize=fontsize)
 
     if title:
         plt.title(title,fontsize=int(fontsize*1.5))
 
 
-    if gridlines and proj == "rect":
-        plt.grid(color=gridcolor,linestyle=":")
+    if gridlines: 
+        if proj == "rect":
+            plt.grid(color=gridcolor,linestyle=":")
+        elif proj == "moll":
+
+            lats = lat_lon_lines.get_moll_latitude_lines()
+            latlines = [None for n in lats]
+
+            for n, l in enumerate(lats):
+
+                (latlines[n],) = plt.plot(
+                    l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                )
+
+            lons = lat_lon_lines.get_moll_longitude_lines(dlon=45)
+            lonlines = [None for n in lons]
+            for n, l in enumerate(lons):
+                if (n == 0 or n == len(lons) - 1) and border:
+                    (lonlines[n],) = plt.plot(
+                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                    )
+                else:
+                    (lonlines[n],) = plt.plot(
+                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                    )
+
+            plt.ylim(-93,93)
+            plt.xlim(-183,183)
+
+        else:
+            lats = lat_lon_lines.get_ortho_latitude_lines()
+            latlines = [None for n in lats]
+
+            for n, l in enumerate(lats):
+                (latlines[n],) = plt.plot(
+                    l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                )
+
+            lons = lat_lon_lines.get_ortho_longitude_lines()
+            lonlines = [None for n in lons]
+            for n, l in enumerate(lons):
+                if n == 0 or n == (len(lons) - 1) and border:
+                    (lonlines[n],) = plt.plot(
+                    l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                    )
+                else:
+                    (lonlines[n],) = plt.plot(
+                    l[0], l[1], "k:", lw=.5, alpha=1, zorder=0
+                    )
+                
+
+
+
+            plt.xlim(-95,95)
+            plt.ylim(-95,95)
 
 
     if not ticks or proj != "rect":
@@ -191,7 +263,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
         plt.tick_params(direction="in")
 
-    if not border:
+    if not border or proj != "rect":
         plt.gca().set_frame_on(False)
     
     plt.tight_layout()
@@ -202,10 +274,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         plt.show()
 
     plt.close(temp_fig)
-    pass
+
         
 
-def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
+def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, center_flux=0,
                  transparent=False, a_labels=True, a_title = None, a_border=True, 
                  a_ticks=True, a_gridlines=True, a_gridcolor="k", fontsize=16,
                  individual=True, colorbar=True):
@@ -286,15 +358,39 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
     se(f"\tSetting projection to {proj}", dp = dpm)
 
+    image = star.map.render(theta=0,projection=proj,rv=False).eval()
+
     if proj == 'ortho':
-        extent = (-90, 90, -90, 90)
+        dx = 180.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+        extent = np.array([
+            -90 - dx,  # Left (padded by one pixel width)
+            90,       # Right
+            -90 - dy,   # Bottom (padded by one pixel height)
+            90         # Top
+        ])
+
         fname = 'emaps-ortho.png'
+
     elif proj == 'rect':
         extent = (-180, 180, -90, 90)
         fname = 'emaps-rect.png'
+
     elif proj == 'moll':
-        extent = (-180, 180, -90, 90)
+        dx = 360.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+
+        extent = np.array([
+            -180 - dx/2,  # Left (padded by one pixel width)
+            180 - dx/2,       # Right
+            -90 - dy/2,   # Bottom (padded by one pixel height)
+            90 - dy/2         # Top
+        ])
+
         fname = 'emaps-moll.png'
+        
 
     ncols = int(np.sqrt(ncurves) // 1)
     nrows = int(ncurves // ncols + (ncurves % ncols != 0))
@@ -315,11 +411,12 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
         rendered_map = star.map.render(theta=0, projection=proj).eval()
         
-        im = ax.imshow(rendered_map,
+        ax.imshow(rendered_map,
                   origin="lower",
                   cmap=cmap,
                   extent=extent,
                   norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+
         
         if individual and emaps_path:
             indiv_path = os.path.join(emaps_path, f"{proj}_emaps")
@@ -327,12 +424,64 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
             if not os.path.isdir(indiv_path):
                 os.mkdir(indiv_path)
 
-            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}", cmap = cmap, center_flux=center_flux, 
+            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
                  transparent=transparent, colorbar=colorbar, gridcolor=a_gridcolor)
 
 
-        if a_gridlines and proj == "rect":
-            ax.grid(color=a_gridcolor,linestyle=":")
+        if a_gridlines:
+            if proj == "rect":
+                ax.grid(color=a_gridcolor,linestyle=":")
+
+            elif proj == "moll":
+                lats = lat_lon_lines.get_moll_latitude_lines(dlat=30)
+                latlines = [None for n in lats]
+
+                for n, l in enumerate(lats):
+
+                    (latlines[n],) = ax.plot(
+                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                    )
+
+                lons = lat_lon_lines.get_moll_longitude_lines(dlon=60)
+                lonlines = [None for n in lons]
+                for n, l in enumerate(lons):
+                    if (n == 0 or n == len(lons) - 1) and a_border:
+                        (lonlines[n],) = ax.plot(
+                            l[0], l[1], "k-", lw=1, alpha=1, zorder=0
+                        )
+                    else:
+                        (lonlines[n],) = ax.plot(
+                            l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                        )
+
+                ax.set_ylim(-93,93)
+                ax.set_xlim(-183,183)
+
+            else:
+                lats = lat_lon_lines.get_ortho_latitude_lines()
+                latlines = [None for n in lats]
+                for n, l in enumerate(lats):
+                    (latlines[n],) = ax.plot(
+                        l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
+                    )
+
+                lons = lat_lon_lines.get_ortho_longitude_lines()
+                lonlines = [None for n in lons]
+                for n, l in enumerate(lons):
+                    if n == 0 or n == (len(lons) - 1) and a_border:
+                        (lonlines[n],) = ax.plot(
+                        l[0], l[1], "k-", lw=1.5, alpha=1, zorder=0
+                        )
+                    else:
+                        (lonlines[n],) = ax.plot(
+                        l[0], l[1], "k:", lw=.5, alpha=1, zorder=0
+                        )
+                
+
+
+
+                plt.xlim(-95,95)
+                plt.ylim(-95,95)
         
 
         if not a_ticks or proj != "rect":
@@ -348,7 +497,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
             ax.tick_params(direction="in")
         
-        if not a_border:
+        if not a_border or proj != "rect":
             ax.set_frame_on(False)
             
 

@@ -8,8 +8,12 @@ import numpy as np
 
 def get_moll_latitude_lines(dlat=30, npts=1000, niter=100,unseen_deg=None):
     res = []
+
     # Work in degrees for the range, then convert to radians for math
-    latlines_deg = np.arange(-90, 90, dlat)[1:]
+    try:
+        latlines_deg = np.arange(-90, 90, dlat)[1:]
+    except:
+        latlines_deg = np.array([])
 
     if not unseen_deg is None:
         latlines_deg = np.append(latlines_deg, unseen_deg)
@@ -72,8 +76,12 @@ def get_ortho_latitude_lines(inc=90, obl=0, fproj=0, dlat=30, npts=1000,unseen_d
     so = np.sin(obl_rad)
 
     res = []
-    # Latitude lines from -90 to 90
-    latlines_deg = np.arange(-90, 90, dlat)[1:]
+
+    try:
+        # Latitude lines from -90 to 90
+        latlines_deg = np.arange(-90, 90, dlat)[1:]
+    except:
+        latlines_deg = np.array([])
 
     if not unseen_deg is None:
         latlines_deg = np.append(latlines_deg, unseen_deg)
@@ -108,7 +116,7 @@ def get_ortho_latitude_lines(inc=90, obl=0, fproj=0, dlat=30, npts=1000,unseen_d
             yr = (-x * so + (y * (1 - fproj)) * co) * scale
             res.append((xr, yr))
 
-    return res
+    return res[::2]
 
 
 def get_ortho_longitude_lines(inc=90, obl=0, fproj=0, theta=0, dlon=30, npts=1000):

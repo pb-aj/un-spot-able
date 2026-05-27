@@ -13,6 +13,8 @@ import starry2 as starry
 import numpy as np
 import matplotlib as mpl
 mpl.rcParams['axes.formatter.useoffset'] = False
+import matplotlib.path as mpath
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 import faulthandler
@@ -70,10 +72,11 @@ def set_emap_directory(fit):
 
     return emaps_path
 
-def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, center_flux=0,
+def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, 
+                 center_flux=0, cmap_norm = None,
                  transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
                  labels=True, title=None, border=True, ticks=True, gridlines=True, 
-                 gridcolor="k",unseen_line=True, cover_unseen=False):
+                 gridcolor="k", unseen_line=True, cover_unseen=True):
     
     """
     Function generates a single emap projection depending on passed star
@@ -99,6 +102,9 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     
     center_flux: float (optional)
         Value to center colorbar at.  Default is 0
+
+    cmap_norm: Matplotlib Normalization (optional)
+        Normalization to use for map, if None uses CenteredNorm around center_flux value.  Default is None
 
     transparent: boolean (optional)
         Whether to make plots transparent.  Default to False
@@ -146,7 +152,10 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
     None
     """
 
-    image = star.map.render(theta=0,projection=proj,rv=False).eval()
+    if proj == "ortho180":
+        image = star.map.render(theta=180,projection=proj,rv=False).eval()
+    else:
+        image = star.map.render(theta=0,projection=proj,rv=False).eval()
 
     if proj == 'ortho':
         dx = 180.0 / image.shape[1] 
@@ -160,6 +169,20 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         ])
 
         fname = 'emap-ortho.png'
+
+    elif proj == "ortho180":
+        dx = 180.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+        extent = np.array([
+            -90 - dx,  # Left (padded by one pixel width)
+            90,       # Right
+            -90 - dy,   # Bottom (padded by one pixel height)
+            90         # Top
+        ])
+
+        fname = 'emap-ortho180.png'
+
     elif proj == 'rect':
         extent = (-180, 180, -90, 90)
         fname = 'emap-rect.png'
@@ -181,19 +204,22 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         fname = other_fname
 
 
-    if proj == 'ortho':
+    if proj == 'ortho' or proj == "ortho180":
         temp_fig = plt.figure(figsize=(7,5))
     else:
         temp_fig = plt.figure(figsize=(12, 5))
 
-
-    plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
-                norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+    if cmap_norm:
+        plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
+                    norm=cmap_norm)
+    else:
+        plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
+                    norm=mpl.colors.CenteredNorm(vcenter=center_flux))
 
     if colorbar:
-        cbar = plt.colorbar()
+        cbar = plt.colorbar(aspect = 40, pad = .03, shrink = 0.95)
         if colorbar_label:
-            cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 10)
+            cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 15)
 
     if labels:
         plt.xlabel("Longitude [deg]",fontsize=fontsize)
@@ -212,8 +238,8 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
         if proj == "rect":
             plt.grid(color=gridcolor,linestyle=":")
             if not unseen_degree is None:
-                plt.axhline(unseen_degree, c="k", ls="-", lw=4, alpha=.6, zorder=1)
-
+                plt.axhline(unseen_degree, c="k", ls="-", lw=4, alpha=1, zorder=1)
+                plt.axhline(unseen_degree, c="deepskyblue", ls="-", lw=3, alpha=1, zorder=1)
 
         elif proj == "moll":
 
@@ -223,9 +249,13 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
             for n, l in enumerate(lats):
                 
                 if unseen_degree and n == len(lats) - 1:
-                    (latlines[n],) = plt.plot(
-                        l[0], l[1], c="k",ls="-", lw=4, alpha=.6, zorder=1
-                    )
+
+                    black_line = plt.plot(
+                        l[0], l[1], c="k",ls="-", lw=4, alpha=1, zorder=1
+                    )[0]
+                    sky_line = plt.plot(
+                        l[0], l[1], c="deepskyblue",ls="-", lw=3, alpha=1, zorder=1
+                    )[0]
                 else:
                     (latlines[n],) = plt.plot(
                         l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
@@ -243,6 +273,21 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
                         l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
                     )
 
+
+            # Force the unseen_line to stay strictly inside the outer boundary line
+            if unseen_degree and 'sky_line' in locals():
+
+                left_path = lonlines[0].get_path()
+                right_path = lonlines[-1].get_path()
+
+                combined_vertices = list(left_path.vertices) + list(right_path.vertices[::-1])
+                closed_oval_path = mpath.Path(combined_vertices)
+
+                clip_patch = mpatches.PathPatch(closed_oval_path, transform=plt.gca().transData)
+    
+                sky_line.set_clip_path(clip_patch)
+                black_line.set_clip_path(clip_patch)
+
             plt.ylim(-93,93)
             plt.xlim(-183,183)
 
@@ -254,9 +299,13 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
             for n, l in enumerate(lats):
 
                 if unseen_degree and n == len(lats) - 1:
-                    (latlines[n],) = plt.plot(
-                        l[0], l[1], c="k",ls="-", lw=4, alpha=.6, zorder=1
-                    )
+
+                    black_line = plt.plot(
+                        l[0], l[1], c="k",ls="-", lw=3, alpha=1, zorder=1
+                    )[0]
+                    sky_line = plt.plot(
+                        l[0], l[1], c="deepskyblue",ls="-", lw=2, alpha=1, zorder=1
+                    )[0]
 
                 else:
                     (latlines[n],) = plt.plot(
@@ -274,6 +323,20 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
                     (lonlines[n],) = plt.plot(
                     l[0], l[1], "k:", lw=.5, alpha=1, zorder=0
                     )
+
+            # Force the unseen_line to stay strictly inside the outer boundary line
+            if unseen_degree and 'sky_line' in locals():
+
+                left_path = lonlines[0].get_path()
+                right_path = lonlines[-1].get_path()
+
+                combined_vertices = list(left_path.vertices) + list(right_path.vertices[::-1])
+                closed_oval_path = mpath.Path(combined_vertices)
+
+                clip_patch = mpatches.PathPatch(closed_oval_path, transform=plt.gca().transData)
+    
+                sky_line.set_clip_path(clip_patch)
+                black_line.set_clip_path(clip_patch)
                 
 
 
@@ -384,7 +447,8 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
                  transparent=False, labels=True, title = None, border=True, 
                  ticks=True, gridlines=True, gridcolor="k", unseen_line=True, cover_unseen = True,
-                 fontsize=16, individual=False, colorbar=True):
+                 fontsize=16, standard_color = True, colorbar=True, colorbar_label = True, 
+                 individual = True, standard_indiv = True):
     
     """
     Function generates various plots associated with the eigenmaps (emaps)  
@@ -450,14 +514,25 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
     fontsize: int (optional)
         Sets size of axis labels and title (1.5x axis).  Default is 24
 
+    standard_color: boolean (optional)
+        If True, code will standardize colormap across all maps.  Default is True 
+        If False, no colorbar will be made.
+
+    colorbar: boolean (optional)
+        If True, code will generate colorbar for plot of all emaps.  Default is True
+
+    colorbar_label: boolean (optional)
+        If True and colorbar is True, will add a label to the colorbar.  Default is True
+
     indiviudal: boolean (optional)
         If True, will generate individual emap plots along with overall.  Default is True
         Will not generate if no path set to avoid clutter in image display.
         Generates using default parameters from emap_plot function.  
         Plotting parameters passed for overall generally do not affect individual
 
-    colorbar: boolean (optional)
-        If True, will generate colorbar on individual emap plots.  Default is True
+    standard_indiv: boolean (optional)
+        If True, will use standard color map for all individual plots.  Only works if standard_color = True
+        Note, if individual = False this will have no effect.
 
     Returns
     -------
@@ -472,7 +547,10 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
     se(f"\tSetting projection to {proj}", dp = dpm)
 
-    image = star.map.render(theta=0,projection=proj,rv=False).eval()
+    if proj == "ortho180":
+        image = star.map.render(theta=180,projection=proj,rv=False).eval()
+    else:
+        image = star.map.render(theta=0,projection=proj,rv=False).eval()
 
     if proj == 'ortho':
         dx = 180.0 / image.shape[1] 
@@ -486,6 +564,19 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
         ])
 
         fname = 'emaps-ortho.png'
+
+    elif proj == "ortho180":
+        dx = 180.0 / image.shape[1] 
+        dy = 180.0 / image.shape[0]
+
+        extent = np.array([
+            -90 - dx,  # Left (padded by one pixel width)
+            90,       # Right
+            -90 - dy,   # Bottom (padded by one pixel height)
+            90         # Top
+        ])
+
+        fname = 'emaps-ortho180.png'
 
     elif proj == 'rect':
         extent = (-180, 180, -90, 90)
@@ -509,12 +600,43 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
     ncols = int(np.sqrt(ncurves) // 1)
     nrows = int(ncurves // ncols + (ncurves % ncols != 0))
 
-
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
+    if proj == "ortho" or proj == "ortho180":
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
+                             sharex=True, sharey=True, figsize=(6,7))
+    else:
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False,
                              sharex=True, sharey=True, figsize=(10,7))
     
     if individual and emaps_path:
         se(f"\n\tGenerating indivdiual emap plots", dp = dpm)
+
+    rendered_maps = []
+
+    max_fluxes_diff = []
+
+    for k in range(ncurves):
+        star.map[:,:] = eigeny[k]
+
+        if proj == "ortho180":
+            current_map = star.map.render(theta=180, projection=proj).eval()
+        else:
+            current_map = star.map.render(theta=0, projection=proj).eval()
+
+        rendered_maps.append(current_map)
+
+        if standard_color:
+
+            amp_array = np.abs(np.array([center_flux - np.nanmin(current_map), np.nanmax(current_map) - center_flux]))
+
+            max_fluxes_diff.append(np.max(amp_array))
+
+    if max_fluxes_diff:
+        max_amp = np.max(max_fluxes_diff)
+
+        overall_norm = mpl.colors.Normalize(vmax = max_amp + center_flux, vmin = center_flux - max_amp)
+    
+    else:
+        overall_norm = None
     
     for j in range(ncurves):
         star.map[:,:] = eigeny[j]
@@ -523,13 +645,20 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
         yloc = j // ncols
         ax = axes[yloc, xloc]
 
-        rendered_map = star.map.render(theta=0, projection=proj).eval()
+        rendered_map = rendered_maps[j]
         
-        ax.imshow(rendered_map,
-                  origin="lower",
-                  cmap=cmap,
-                  extent=extent,
-                  norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+        if standard_color:
+            im = ax.imshow(rendered_map,
+                    origin="lower",
+                    cmap=cmap,
+                    extent=extent,
+                    norm = overall_norm)
+        else:
+            im = ax.imshow(rendered_map,
+                    origin="lower",
+                    cmap=cmap,
+                    extent=extent,
+                    norm = mpl.colors.CenteredNorm(vcenter=center_flux))
 
         
         if individual and emaps_path:
@@ -538,8 +667,13 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
             if not os.path.isdir(indiv_path):
                 os.mkdir(indiv_path)
 
-            emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
-                 transparent=transparent, colorbar=colorbar)
+            if standard_indiv:
+                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
+                    transparent=transparent, cmap_norm=overall_norm)
+            else:
+                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
+                    transparent=transparent, cmap_norm=None)
+
 
 
         if gridlines:
@@ -552,7 +686,8 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
             if proj == "rect":
                 ax.grid(color=gridcolor,linestyle=":")
                 if not unseen_degree is None:
-                    ax.axhline(unseen_degree, c="k",ls="-", lw=4, alpha=.6, zorder=1)
+                    ax.axhline(unseen_degree, c="k",ls="-", lw=3, alpha=1, zorder=1)
+                    ax.axhline(unseen_degree, c="deepskyblue",ls="-", lw=2, alpha=1, zorder=1)
 
             elif proj == "moll":
                 lats = lat_lon_lines.get_moll_latitude_lines(dlat=30,unseen_deg=unseen_degree)
@@ -561,9 +696,13 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                 for n, l in enumerate(lats):
 
                     if unseen_degree and n == len(lats) - 1:
-                        (latlines[n],) = ax.plot(
-                        l[0], l[1], c="k",ls="-", lw=4, alpha=.6, zorder=1
-                        )
+
+                        black_line = ax.plot(
+                            l[0], l[1], c="k",ls="-", lw=2, alpha=1, zorder=1
+                        )[0]
+                        sky_line = ax.plot(
+                            l[0], l[1], c="deepskyblue",ls="-", lw=1, alpha=1, zorder=1
+                        )[0]
                     else:
                         (latlines[n],) = ax.plot(
                             l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
@@ -581,6 +720,20 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                             l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
                         )
 
+                # Force the unseen_line to stay strictly inside the outer boundary line
+                if unseen_degree and 'sky_line' in locals():
+
+                    left_path = lonlines[0].get_path()
+                    right_path = lonlines[-1].get_path()
+
+                    combined_vertices = list(left_path.vertices) + list(right_path.vertices[::-1])
+                    closed_oval_path = mpath.Path(combined_vertices)
+
+                    clip_patch = mpatches.PathPatch(closed_oval_path, transform=ax.transData)
+        
+                    sky_line.set_clip_path(clip_patch)
+                    black_line.set_clip_path(clip_patch)
+
                 ax.set_ylim(-93,93)
                 ax.set_xlim(-183,183)
 
@@ -590,9 +743,14 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
                 for n, l in enumerate(lats):
                     if unseen_degree and n == len(lats) - 1:
-                        (latlines[n],) = ax.plot(
-                        l[0], l[1], c="k",ls="-", lw=4, alpha=.6, zorder=1
-                        )
+
+                        black_line = ax.plot(
+                            l[0], l[1], c="k",ls="-", lw=2, alpha=1, zorder=1
+                        )[0]
+                        sky_line = ax.plot(
+                            l[0], l[1], c="deepskyblue",ls="-", lw=1, alpha=1, zorder=1
+                        )[0]
+
                     else:
                         (latlines[n],) = ax.plot(
                             l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
@@ -611,7 +769,19 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
                         )
                 
 
+                # Force the unseen_line to stay strictly inside the outer boundary line
+                if unseen_degree and 'sky_line' in locals():
 
+                    left_path = lonlines[0].get_path()
+                    right_path = lonlines[-1].get_path()
+
+                    combined_vertices = list(left_path.vertices) + list(right_path.vertices[::-1])
+                    closed_oval_path = mpath.Path(combined_vertices)
+
+                    clip_patch = mpatches.PathPatch(closed_oval_path, transform=ax.transData)
+        
+                    sky_line.set_clip_path(clip_patch)
+                    black_line.set_clip_path(clip_patch)
 
                 plt.xlim(-95,95)
                 plt.ylim(-95,95)
@@ -706,7 +876,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
         
         if not border or proj != "rect":
             ax.set_frame_on(False)
-            
+          
 
     if labels:
         fig.supxlabel("Longitude [deg]",fontsize=fontsize)
@@ -716,6 +886,11 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
         fig.suptitle(title,fontsize=int(fontsize*1.5))
 
     fig.tight_layout()
+
+    if colorbar and standard_color:
+        cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95, aspect = 40, pad = .03)
+        if colorbar_label:
+            cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 15)
 
     se(f"\n\tGenerating overall emap plot", dp = dpm)
     
@@ -941,7 +1116,7 @@ if __name__ == "__main__":
     se("\n\033[32mCreating light curve visualizations:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)
 
-    # create_eflux(star, eigeny, emaps_path=emaps_path)
+    create_eflux(star, eigeny, emaps_path=emaps_path)
 
     se("----------------------------------------------------------------------------", dp = dpm)
 

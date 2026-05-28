@@ -45,3 +45,6 @@ class Fit:
         self.cfg.star.obl = self.cfg.cfg.getfloat('Star', 'obl')
         self.cfg.star.udeg = [float(item.strip()) for item in self.cfg.cfg.get('Star', 'udeg').split(",")]
         self.cfg.star.veq = self.cfg.cfg.getfloat('Star', 'veq')
+        self.cfg.star.teff = self.cfg.cfg.getfloat('Star', 'teff')
+        self.cfg.star.max_teff = self.cfg.cfg.getfloat('Star', 'max_teff')
+        self.cfg.star.min_teff = self.cfg.cfg.getfloat('Star', 'min_teff')

@@ -724,7 +724,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = 
 
 
 
-def create_rv(eigeny, fit, theta = np.linspace(0, 360, 180)):
+def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 180)):
     """
     [desc]
 
@@ -751,7 +751,7 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 180)):
 
     ani_interval = int(6000 / len(theta))
 
-    se("\tLooping through each map and generating plots", dp=dpm)
+    se("\tLooping through each map and generating plots:", dp=dpm)
     se("\t------------------------------------------------", dp = dpm)
     for i in range(ncurves):
 
@@ -763,6 +763,7 @@ def create_rv(eigeny, fit, theta = np.linspace(0, 360, 180)):
         se(f'\t\t\u2022 "Emap {i}" has been normalized with a factor of {rv_star.map.y.eval()[0]:.1f}', dp=dpm)
 
         se(f'\t\t\u2022 Creating plots for "Emap {i}"', dp=dpm)
+
 
         indiv_path = f"{rv_path}/map_{i}"
 
@@ -819,6 +820,6 @@ if __name__ == "__main__":
 
     rv_path = set_rv_directory(fit)
 
-    create_rv(eigeny, fit)
+    create_rv(eigeny, fit, rv_path)
 
     sys.exit("\033[32mdone\033[0m")

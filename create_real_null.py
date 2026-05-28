@@ -83,7 +83,7 @@ def normalize_null_eigens(cfile, prompt_user=True):
             norm_eigeny = np.loadtxt(f"{norm_eigen_path}/norm_null_eigeny.txt")
             se("----------------------------------------------------------------------------", dp = dpm)
 
-            return norm_eigeny
+            return norm_eigeny, fit
         except:
             se(f"\n\t\033[31m\033[1mStored normalized null eigen results are invalid, calculating new ones...\033[0m",dp = dpm)
             use_stored_eigeny = "n"
@@ -138,7 +138,26 @@ def normalize_null_eigens(cfile, prompt_user=True):
 
     se("----------------------------------------------------------------------------", dp = dpm)   
 
-    return null_eigeny
+    return null_eigeny, fit
+
+
+def set_real_directory(fit):
+    """
+    
+    """
+
+    cfg = fit.cfg
+
+    subdir = cfg.folder
+    outdir = os.path.join(cfg.outdir, subdir)
+    results_path = os.path.join(outdir,"realistic_outputs")
+
+    se(f"\tSetting directory to:\n\t\033[34m{results_path}\033[0m\n", dp = dpm)
+
+    if not os.path.isdir(results_path):
+        os.mkdir(results_path)
+
+    return results_path
 
 
 def plot_intensity(realistic_star, theta, fname):
@@ -174,25 +193,15 @@ def plot_intensity(realistic_star, theta, fname):
     plt.close()
 
 
-def set_up_stars(cfile, eigeny, uni_comp = 1, theta_neg_90 = np.linspace(-90,90,720)):
+def set_up_stars(fit, eigeny, uni_comp = 1, theta_neg_90 = np.linspace(-90,90,180)):
 
-    fit = fc.Fit()
-
-    se("Reading the configuration file & data.", dp = dpm)
-    fit.read_config(cfile)
     cfg = fit.cfg
-
-    se("Creating needed stars for Scaling", dp = dpm)
     lmax = cfg.sim.lmax
     udeg = cfg.star.udeg
 
-
     #load in data/set up stars
     realistic_star = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
-    base_star = utils.initstar(fit, lmax, include_rv=True)
-
     inv_realistic_star = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
-    inv_base_star = utils.initstar(fit, lmax, include_rv=True)
 
     uni_star_limb = utils.initstar(fit, lmax, udeg=udeg, include_rv=True)
     uni_star = utils.initstar(fit, lmax, include_rv=True)
@@ -204,10 +213,8 @@ def set_up_stars(cfile, eigeny, uni_comp = 1, theta_neg_90 = np.linspace(-90,90,
     inv_realistic_star.map[0,0] = -eigeny[0] + uni_comp
     inv_realistic_star.map[1:,:] = -eigeny[1:]
 
-
     #central intenisty is the same regardless of inc, so setting to 90 for ease
     uni_star.map.inc = 90
-
     uni_star_limb.map.inc = 90
 
     uni_star.map[0,0] = uni_comp
@@ -226,8 +233,10 @@ def set_up_stars(cfile, eigeny, uni_comp = 1, theta_neg_90 = np.linspace(-90,90,
 
 
 def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_limb, 
-                    uni_comp = 1, theta_neg_90 = np.linspace(-90,90,720),
+                    uni_comp = 1, theta_neg_90 = np.linspace(-90,90,180),
                     lower_fraction = .42, upper_fraction = 1.35):
+    
+
 
     uni_star_limb.map[0,0] = uni_comp * ratio_no_limb
     uni_star_limb.map[1:,:] = 0
@@ -239,13 +248,6 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
 
     ratio_below = (uni_value - amount_below_uni) / uni_value
     ratio_above = (amount_above_uni + uni_value) / uni_value
-
-    se("Initial Values:", dp = dpm)
-    se("----------------------------------------------------------------------------", dp = dpm)
-    se("\tAmount uni/below/above:",round(uni_value,2),round(amount_below_uni,2),round(amount_above_uni,2), dp = dpm)
-    se("\tRatio below/above:",round(ratio_below,2),round(ratio_above,2), dp = dpm)
-    se("\tValue uni/below/above:",round(uni_value,2),round(ratio_below*uni_value,2),round(ratio_above*uni_value,2), dp = dpm)
-    se("----------------------------------------------------------------------------")
     
 
     while ratio_below <= lower_fraction or ratio_above >= upper_fraction:
@@ -253,7 +255,7 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
         """
         Note: starry does not apply limb darkening to render or minimize.  
         So while these maps need to be scaled for .show() animations and intensity curves, 
-        they do not need to be scaled when deadling with static plots/minimize/anything that
+        they do not need to be scaled when dealing with static plots/minimize/anything that
         can't have limb darkening applied
         """
 
@@ -273,25 +275,13 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
         ratio_below = (uni_value - amount_below_uni) / uni_value
         ratio_above = (amount_above_uni + uni_value) / uni_value
 
-        # se("Amount uni/below/above:",round(uni_value,2),round(amount_below_uni,2),round(amount_above_uni,2))
-        # se("Ratio below/above:",round(ratio_below,2),round(ratio_above,2))
-        # se("Value uni/below/above:",round(uni_value,2),round(ratio_below*uni_value,2),round(ratio_above*uni_value,2))
-
-
-    se("Finished Normalizing with Values:", dp = dpm)
-    se("----------------------------------------------------------------------------", dp = dpm)
-    se("\tAmount uni/below/above:",round(uni_value,2),round(amount_below_uni,2),round(amount_above_uni,2), dp = dpm)
-    se("\tRatio below/above:",round(ratio_below,2),round(ratio_above,2), dp = dpm)
-    se("\tValue uni/below/above:",round(uni_value,2),round(ratio_below*uni_value,2),round(ratio_above*uni_value,2), dp = dpm)
-    se("----------------------------------------------------------------------------", dp = dpm)
-
     """
     As described in the note above, we want to apply the amp after because limb only impacts intensity and animated plots
     Therefore if we apply it before we will have the same issue where the limb-calcs will be inflated unrealistically
     This means we also need to turn the amp "off" for any static plots/calc without limb involved.
     """
 
-    se("Applying the ratio_no_limb to Star's Amp to fix Starry limb darkening.")
+    # Applying the ratio_no_limb to Star's Amp to fix Starry limb darkening.
     realistic_star.map.amp = ratio_no_limb
 
 
@@ -385,7 +375,83 @@ def generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above,
     se("----------------------------")
 
     
+def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1):
 
+    se("\tCalculating Flux Range Limits\n", dp=dpm)
+
+    cfg = fit.cfg
+
+    teff = cfg.star.teff
+    max_teff = cfg.star.max_teff
+    min_teff = cfg.star.min_teff
+
+    min_ratio = np.round(min_teff**4 / teff**4, decimals=2)
+
+    max_ratio = np.round(max_teff**4 / teff**4, decimals=2)
+
+    se("\tLooping through each null map and generating plots:",dp = dpm)
+    se("\t------------------------------------------------",dp = dpm)
+
+    for i in range(null_eigens.shape[0]):
+
+        se("\t\t\u2022 Setting up reference stars",dp = dpm)
+
+        realistic_star, inv_realistic_star, uni_star_limb, uni_star, ratio_no_limb = set_up_stars(fit, null_eigens[i], uni_comp=uni_comp)
+
+        print(uni_star_limb.map.flux(theta=theta).eval()[0])
+        print(uni_star.map.flux(theta=theta).eval()[0])
+
+        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        uni_star_limb.map.amp = 2
+        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        uni_star_limb.map.amp = 4
+        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+
+        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        uni_star.map.amp = 2
+        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        uni_star.map.amp = 4
+        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+
+        se("\t\t\u2022 Scaling to realistic range",dp = dpm)
+        # se("\t------------------------------------------------",dp = dpm)
+        # se("----------------------------------------------------------------------------\n", dp = dpm)
+
+        realistic_star, adj_uni_comp, ratio_below, ratio_above, uni_value = \
+            set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_limb,
+                            lower_fraction=min_ratio,upper_fraction=max_ratio, uni_comp=uni_comp)
+        
+        print(realistic_star.map[0,0].eval())
+        print(adj_uni_comp)
+        print(uni_comp)
+        print(ratio_no_limb)
+        print(adj_uni_comp * ratio_no_limb)
+        print(realistic_star.map.flux(theta=theta).eval()[0])
+        print(null_eigens[i][0])
+        realistic_star.map.amp = 1
+        realistic_star.map[0,0] = 1
+        print(realistic_star.map.flux(theta=theta).eval()[0])
+        realistic_star.map[0,0] = null_eigens[i][0]
+        print(realistic_star.map.flux(theta=theta).eval()[0])
+
+        sys.exit()
+    
+
+        generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above, uni_value, results_path, folder_name = f"null_map_{i}")
+
+
+
+    for i in range(null_eigens.shape[0]):
+
+        realistic_star, inv_realistic_star, uni_star_limb, uni_star, ratio_no_limb = set_up_stars(cfile, -null_eigens[i])
+
+        realistic_star, uni_comp, ratio_below, ratio_above, uni_value = \
+            set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_limb)
+    
+
+        generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above, uni_value, results_path, folder_name = f"null_map_-{i}")
+
+    pass
 
 
 if __name__ == "__main__":
@@ -401,13 +467,17 @@ if __name__ == "__main__":
     else:
         cfile = sys.argv[1]
 
-    se("\n\033[32mNormailizing Null Maps:\033[0m", dp = dpm)
+    se("\n\033[32mNormailizing null eigen results:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)
-    null_eigens = normalize_null_eigens(cfile, prompt_user=True)
+    null_eigens, fit = normalize_null_eigens(cfile, prompt_user=False)
 
-    se("\n\033[32mSetting up Calibration Stars:\033[0m", dp = dpm)
+    se("\n\033[32mCreating realistic null maps:\033[0m", dp = dpm)
     se("----------------------------------------------------------------------------", dp = dpm)
-    
+
+    results_path = set_real_directory(fit)
+
+    create_real_null(null_eigens, fit, results_path)
+
 
 
 

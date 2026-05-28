@@ -136,7 +136,7 @@ def create_eigens(cfile, prompt_user=True):
     else:
         if os.path.exists(eigen_path):
             se("----------------------------------------------------------------------------\n",dp = dpm)
-            se("Attempting to read in existing eigens:",dp = dpm)
+            se("Attempting to read in existing eigen results:",dp = dpm)
             use_stored_pca = "y"
         else:
             se("----------------------------------------------------------------------------\n",dp = dpm)

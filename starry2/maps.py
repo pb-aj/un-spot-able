@@ -641,7 +641,7 @@ class MapBase(object):
         colorbar_label = kwargs.pop("colorbar_label", None)
         #added label for colorbar
         colorbar_size = kwargs.pop("colorbar_size", "5%")
-        colorbar_pad = kwargs.pop("colorbar_pad", 0.05)
+        colorbar_pad = kwargs.pop("colorbar_pad", 0.03)
         show_image = kwargs.pop("show_image",True) #Adding option to not display the plot
         """show_image being False does not display any image but instead returns a list 
         constaining the img, image, and lonlines values of the animated image"""
@@ -867,7 +867,7 @@ class MapBase(object):
                 fig.subplots_adjust(right=0.85)
             divider = make_axes_locatable(ax)
             cax = divider.append_axes(
-                position="right", size=colorbar_size, pad=colorbar_pad
+                position="right", size=colorbar_size, pad=colorbar_pad, 
             )
             if colorbar_label:
                 cbar = fig.colorbar(img, cax=cax, orientation="vertical")

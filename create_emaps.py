@@ -1092,7 +1092,7 @@ if __name__ == "__main__":
     # Check command line input is correct
     if len(sys.argv) < 2:
         se("\n----------------------------------------------------------------------------",dp = dpm)
-        se('\033[31mERROR:\033[0m' + ' Call structure is "\033[34mpython create_eigens.py <configuration file>\033[0m"',dp = dpm)
+        se('\033[31mERROR:\033[0m' + ' Call structure is "\033[34mpython create_emaps.py <configuration file>\033[0m"',dp = dpm)
         se("----------------------------------------------------------------------------",dp = dpm)
         sys.exit()
     else:

@@ -236,9 +236,10 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
                     uni_comp = 1, theta_neg_90 = np.linspace(-90,90,180),
                     lower_fraction = .42, upper_fraction = 1.35):
     
+    uni_star_limb.map.amp = ratio_no_limb
+    
 
-
-    uni_star_limb.map[0,0] = uni_comp * ratio_no_limb
+    uni_star_limb.map[0,0] = uni_comp #* ratio_no_limb
     uni_star_limb.map[1:,:] = 0
     uni_value = np.max(uni_star_limb.map.intensity(lat=0, lon=theta_neg_90,rv=False).eval())
 
@@ -261,8 +262,7 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
 
         uni_comp += .1
 
-        uni_star_limb.map[0,0] = uni_comp * ratio_no_limb
-        uni_star_limb.map[1:,:] = 0
+        uni_star_limb.map[0,0] += .1
         uni_value = np.max(uni_star_limb.map.intensity(lat=0, lon=theta_neg_90,rv=False).eval())
 
         realistic_star.map[0,0] += .1
@@ -285,9 +285,29 @@ def set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_
     realistic_star.map.amp = ratio_no_limb
 
 
-    return realistic_star, uni_comp, ratio_below, ratio_above, uni_value
+    return realistic_star, inv_realistic_star, uni_star_limb, uni_comp, ratio_below, ratio_above, uni_value
 
-   
+def scale_real_map(realistic_star, uni_star_limb, scale_value, uni_comp, ratio_no_limb, scaler="lc"):
+
+    realistic_star.map.amp = ratio_no_limb
+    uni_star_limb.map.amp = ratio_no_limb
+
+    if scaler == "lc":
+
+        scaled_amp = scale_value / uni_comp / ratio_no_limb
+
+        realistic_star.map.amp*= scaled_amp
+
+        uni_star_limb.map.amp*= scaled_amp
+
+    elif scaler == "intensity":
+        uni_intensity = np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval())
+
+        factor = scale_value / uni_intensity
+
+        realistic_star.map.amp *= factor
+        
+        uni_star_limb.map.amp *= factor
 
 
 def generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above, uni_value, results_path, folder_name):
@@ -375,7 +395,8 @@ def generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above,
     se("----------------------------")
 
     
-def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1):
+def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1,
+                     scale_star=None, scaler="lc"):
 
     se("\tCalculating Flux Range Limits\n", dp=dpm)
 
@@ -398,43 +419,65 @@ def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180
 
         realistic_star, inv_realistic_star, uni_star_limb, uni_star, ratio_no_limb = set_up_stars(fit, null_eigens[i], uni_comp=uni_comp)
 
-        print(uni_star_limb.map.flux(theta=theta).eval()[0])
-        print(uni_star.map.flux(theta=theta).eval()[0])
-
-        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-        uni_star_limb.map.amp = 2
-        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-        uni_star_limb.map.amp = 4
-        print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-
-        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-        uni_star.map.amp = 2
-        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-        uni_star.map.amp = 4
-        print(np.max(uni_star.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
-
         se("\t\t\u2022 Scaling to realistic range",dp = dpm)
         # se("\t------------------------------------------------",dp = dpm)
         # se("----------------------------------------------------------------------------\n", dp = dpm)
 
-        realistic_star, adj_uni_comp, ratio_below, ratio_above, uni_value = \
+        realistic_star, inv_realistic_star, uni_star_limb, adj_uni_comp, ratio_below, ratio_above, uni_value = \
             set_up_real_map(realistic_star, inv_realistic_star, uni_star_limb, ratio_no_limb,
                             lower_fraction=min_ratio,upper_fraction=max_ratio, uni_comp=uni_comp)
         
-        print(realistic_star.map[0,0].eval())
-        print(adj_uni_comp)
-        print(uni_comp)
-        print(ratio_no_limb)
-        print(adj_uni_comp * ratio_no_limb)
-        print(realistic_star.map.flux(theta=theta).eval()[0])
-        print(null_eigens[i][0])
-        realistic_star.map.amp = 1
-        realistic_star.map[0,0] = 1
-        print(realistic_star.map.flux(theta=theta).eval()[0])
-        realistic_star.map[0,0] = null_eigens[i][0]
-        print(realistic_star.map.flux(theta=theta).eval()[0])
+        # print(ratio_no_limb)
+        # print(uni_star_limb.map[0,0].eval())
+        # print(np.nanmax(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        # print(uni_star_limb.map.flux(theta=theta).eval()[0])
 
-        sys.exit()
+        # print(realistic_star.map[0,0].eval())
+        # print(np.nanmax(realistic_star.map.render(theta=0,rv=False).eval()))
+        # print(realistic_star.map.flux(theta=theta).eval()[0])
+        
+        if not scale_star is None:
+            scale_real_map(realistic_star, uni_star_limb, 
+                        scale_value=scale_star, uni_comp=adj_uni_comp, 
+                        ratio_no_limb=ratio_no_limb,scaler=scaler)
+        
+        # print("\n\n\n")
+        
+
+        # print(uni_star_limb.map[0,0].eval())
+        # print(np.nanmax(uni_star_limb.map.render(theta=0,rv=False).eval()))
+        # print(uni_star_limb.map.flux(theta=theta).eval()[0])
+        # uni_star_limb.map.amp /= ratio_no_limb
+        # print(np.nanmax(uni_star_limb.map.render(theta=0,rv=False,projection="moll").eval()))
+
+        # print(realistic_star.map[0,0].eval())
+        # print(np.nanmax(realistic_star.map.render(theta=0,rv=False).eval()))
+        # print(np.nanmin(realistic_star.map.render(theta=0,rv=False).eval()))
+        # print(realistic_star.map.flux(theta=theta).eval()[0])
+        # realistic_star.map.amp /= ratio_no_limb
+        # print(np.nanmax(realistic_star.map.render(theta=0,rv=False,projection="moll").eval()))
+        # print(np.nanmin(realistic_star.map.render(theta=0,rv=False,projection="moll").eval()))
+        
+        # print(uni_star_limb.map[0,0].eval())
+        # print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        # uni_star_limb.map[0,0] /= ratio_no_limb
+        # print(uni_star_limb.map[0,0].eval())
+        # print(np.nanmax(uni_star_limb.map.render(theta=0,rv=False,projection="moll").eval()))
+        # uni_star_limb.map[0,0] = ratio_no_limb
+        # print(uni_star_limb.map[0,0].eval())
+        # print(np.max(uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,180),rv=False).eval()))
+        # print(realistic_star.map[0,0].eval())
+        # print(adj_uni_comp)
+        # print(uni_comp)
+        # print(ratio_no_limb)
+        # print(adj_uni_comp * ratio_no_limb)
+        # print(realistic_star.map.flux(theta=theta).eval()[0])
+        # print(null_eigens[i][0])
+        # realistic_star.map.amp = 1
+        # realistic_star.map[0,0] = 1
+        # print(realistic_star.map.flux(theta=theta).eval()[0])
+        # realistic_star.map[0,0] = null_eigens[i][0]
+        # print(realistic_star.map.flux(theta=theta).eval()[0])
     
 
         generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above, uni_value, results_path, folder_name = f"null_map_{i}")

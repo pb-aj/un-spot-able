@@ -89,7 +89,7 @@ def create_eigens(cfile, prompt_user=True):
     se("\n\tFinding rank of the spherical harmponic design matrix:",dp = dpm)
     se("\t------------------------------------------------",dp = dpm)
 
-    A = star.map.design_matrix(theta=np.linspace(0,360,100)).eval()
+    A = star.map.design_matrix(theta=np.linspace(0,360,181)).eval()
     R = np.empty((1, lmax))
 
     R = [

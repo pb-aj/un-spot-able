@@ -341,6 +341,7 @@ class MapBase(object):
             for n, l in enumerate(lons):
                 lonlines[n].set_xdata(l[0])
                 lonlines[n].set_ydata(l[1])
+
         return tuple(images + lonlines + latlines + borders)
     
     def _updatefig_maps(
@@ -400,7 +401,6 @@ class MapBase(object):
         legend_list,
     ):
         
-
         img_list[0].set_array(image_list[0][i])
         images = [img_list[0]]
 
@@ -650,6 +650,7 @@ class MapBase(object):
         from a previously made map.show call where show_image = False"""
         extra_lines = kwargs.pop("extra_lines",None)
         uni_int = kwargs.pop("uni_int",1)
+        latline = kwargs.pop("latline",None)
         """"""
         legend_list = kwargs.pop("legend_list",None)
         transparent = kwargs.pop("transparent",False)
@@ -801,12 +802,29 @@ class MapBase(object):
             if grid:
                 borders += ax.plot(xp, yp, "k-", alpha=1, lw=1.5, zorder=0)
                 borders += ax.plot(xm, ym, "k-", alpha=1, lw=1.5, zorder=0)
-                lats = self._get_ortho_latitude_lines(**kwargs)
-                latlines = [None for n in lats]
-                for n, l in enumerate(lats):
-                    (latlines[n],) = ax.plot(
-                        l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
-                    )
+                if not latline is None:
+                    lats = self._get_ortho_latitude_lines(**kwargs, extra_degree=50)
+                    latlines = [None for n in lats]
+                    print(len(lats))
+                    i = 1
+                    for n, l in enumerate(lats):
+                        # if n == (len(lats) - 1):
+                        #     (latlines[n],) = ax.plot(
+                        #         l[0], l[1], "k-", lw=1, alpha=0.5, zorder=0
+                        #     )
+                        # else:
+                            (latlines[n],) = ax.plot(
+                                l[0], l[1], "k-", lw=i, alpha=0.5, zorder=0
+                            )
+                            i += 1
+
+                else:
+                    lats = self._get_ortho_latitude_lines(**kwargs)
+                    latlines = [None for n in lats]
+                    for n, l in enumerate(lats):
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
+                        )
                 lons = self._get_ortho_longitude_lines(**kwargs)
                 lonlines = [None for n in lons]
                 for n, l in enumerate(lons):
@@ -971,7 +989,6 @@ class MapBase(object):
 
             else:
 
-                # print("4")
                 
                 ani = FuncAnimation(
                     fig,
@@ -1005,6 +1022,7 @@ class MapBase(object):
                     else:
                         ani.save(
                             file, writer="pillow", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": False})
+                    plt.close()
                 else:
                     # Try and see what happens!
                     ani.save(file, dpi=dpi, bitrate=bitrate, savefig_kwargs={"transparent": transparent})

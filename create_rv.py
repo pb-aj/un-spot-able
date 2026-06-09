@@ -121,7 +121,7 @@ def adjust_star(star, lower_limit=0, uni_comp = None, iterator = .1):
     return None
 
 
-def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
+def flux_rv_line(rv_star,theta = np.linspace(-180, 180, 361), flux=None, rv=None,
                  flux_name=None,rv_name=None,flux_only=False,rv_only=False,
                  transparent=False, labels=True, title = None, border=True, ticks=True, 
                  centerline=True, fontsize=16, color="sandybrown", cline_color="k"):
@@ -165,10 +165,10 @@ def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
             plt.gca().set_yticklabels([])
             plt.tick_params(left=False, bottom=False)
         else:
-            plt.gca().set_xticks([45,90,135,180,225,270,315])
-            plt.gca().set_xticklabels([45,90,135,180,225,270,315])
+            plt.gca().set_xticks([-135,-90,-45,0,45,90,135])
+            plt.gca().set_xticklabels([-135,-90,-45,0,45,90,135])
 
-            plt.xlim(0,360)
+            plt.xlim(-180,180)
 
             min_f = np.min(flux)
             max_f = np.max(flux)
@@ -227,10 +227,10 @@ def flux_rv_line(rv_star,theta = np.linspace(0, 360, 360), flux=None, rv=None,
             plt.tick_params(left=False, bottom=False)
 
         else:
-            plt.gca().set_xticks([45,90,135,180,225,270])
-            plt.gca().set_xticklabels([45,90,135,180,225,270])
+            plt.gca().set_xticks([-135,-90,-45,0,45,90,135])
+            plt.gca().set_xticklabels([-135,-90,-45,0,45,90,135])
 
-            plt.xlim(0,360)
+            plt.xlim(-180,180)
 
             min_f = np.min(rv)
             max_f = np.max(rv)
@@ -307,12 +307,12 @@ def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,center_flux=0):
         plt.show()
     plt.close(fig)
 
-def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = cm.bam, center_flux=0,
+def map_animations(rv_star,theta = np.linspace(0, 360, 181), fname=None, cmap = cm.bam, center_flux=0,
                    maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
                    interval = 75, fps = 10, fontsize=16, map_gridlines=True, map_labels=True, norm=None,
                    colorbar="bottom", colorbar_label=True, transparent=False, marker_color = "darkgrey",
                    curve_border=True, curve_labels=True, ticks=True, legend=False, curve_gridlines=False,
-                   centerline=True, cline_color="k",guidline=True, guidline_color="k"):
+                   centerline=True, cline_color="k",guideline=True, guideline_color="k"):
     """
     {desc} - needs so muuch work vvvv
 
@@ -432,8 +432,8 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = 
                     middle = (np.max(flux_data) + np.min(flux_data)) / 2
                     ax_flux.axhline(y=middle,color=cline_color,linestyle="--",linewidth=.5)
 
-                if guidline:
-                    ax_flux.axvline(x=0, color=guidline_color, linestyle=':', linewidth=1.5)  
+                if guideline:
+                    ax_flux.axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5)  
 
 
                 if curve_labels:
@@ -529,8 +529,8 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = 
                 if centerline:
                     ax_rv.axhline(y=0,color=cline_color,linestyle="--",linewidth=.5)
 
-                if guidline:
-                    ax_rv.axvline(x=0, color=guidline_color, linestyle=':', linewidth=1.5)
+                if guideline:
+                    ax_rv.axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5)
 
 
                 if curve_labels:
@@ -642,9 +642,9 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = 
 
                 ax_rv.axhline(y=0,color=cline_color,linestyle="--",linewidth=.5)
 
-            if guidline:
-                ax_flux.axvline(x=0, color=guidline_color, linestyle=':', linewidth=1.5)  
-                ax_rv.axvline(x=0, color=guidline_color, linestyle=':', linewidth=1.5)
+            if guideline:
+                ax_flux.axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5)  
+                ax_rv.axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5)
 
 
             if curve_labels:
@@ -724,7 +724,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 180), fname=None, cmap = 
 
 
 
-def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 180)):
+def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181)):
     """
     [desc]
 
@@ -773,13 +773,16 @@ def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 180)):
         uni_star.map[0,0] = rv_star.map[0,0]
         image = uni_star.map.render(theta=180,projection="rect",rv=False).eval()
         
-        map_animations(rv_star,theta = theta,fname=f"{indiv_path}/emap_animation.mp4", 
+        map_animations(rv_star, theta = theta,fname=f"{indiv_path}/emap_animation.mp4", 
                        interval = ani_interval, transparent=False, center_flux=np.nanmean(image))
         
         create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='rect', other_fname=None, 
                  transparent=False, colorbar=True, center_flux=np.nanmean(image))
+        
+        create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='moll', other_fname=None, 
+                 transparent=False, colorbar=True, center_flux=np.nanmean(image))
 
-        flux_rv_line(rv_star,theta,
+        flux_rv_line(rv_star,
                      flux_name=f"{rv_path}/map_{i}/flux_curve.png",rv_name=f"{rv_path}/map_{i}/rv_curve.png")
         
         # multi_phase_plot(rv_star,fname=f"{rv_path}/map_{i}/map_slideshow.png",center_flux=np.nanmean(image))    

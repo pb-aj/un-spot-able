@@ -72,7 +72,7 @@ def set_emap_directory(fit):
 
     return emaps_path
 
-def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.bam, 
+def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.bam, 
                  center_flux=0, cmap_norm = None,
                  transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
                  labels=True, title=None, border=True, ticks=True, gridlines=True, 
@@ -350,7 +350,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
         if proj == "rect":
 
-            plt.fill_between(np.linspace(-180,180,360), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
+            plt.fill_between(np.linspace(-180,180,361), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
 
             pass
 
@@ -444,7 +444,7 @@ def emap_plot(star, indiv_path=None, proj='rect', other_fname=None, cmap = cm.ba
 
         
 
-def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, center_flux=0,
+def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, center_flux=0,
                  transparent=False, labels=True, title = None, border=True, 
                  ticks=True, gridlines=True, gridcolor="k", unseen_line=True, cover_unseen = True,
                  fontsize=16, standard_color = True, colorbar=True, colorbar_label = True, 
@@ -793,7 +793,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
 
             if proj == "rect":
 
-                ax.fill_between(np.linspace(-180,180,360), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
+                ax.fill_between(np.linspace(-180,180,361), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
 
                 pass
 
@@ -911,7 +911,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='rect', cmap = cm.bam, cent
     return None
 
 
-def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360),
+def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(-180, 180, 361),
                  transparent=False, fontsize=16, centerline=True,
                  labels=True, title = None, border=True, ticks=False, cline_color="k",
                  individual=True, color="sandybrown"):
@@ -1019,10 +1019,10 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(0, 360, 360)
             ax.set_yticklabels([])
             ax.tick_params(left=False, bottom=False)
         else:
-            ax.set_xticks([90,180,270])
-            ax.set_xticklabels([90,180,270])
+            ax.set_xticks([-90,0,90])
+            ax.set_xticklabels([-90,0,90])
 
-            ax.set_xlim(0,360)
+            ax.set_xlim(-180,180)
 
             ax.tick_params(direction="in")
 

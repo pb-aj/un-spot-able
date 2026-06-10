@@ -307,7 +307,7 @@ def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,center_flux=0):
         plt.show()
     plt.close(fig)
 
-def map_animations(rv_star,theta = np.linspace(0, 360, 181), fname=None, cmap = cm.bam, center_flux=0,
+def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cmap = cm.bam, center_flux=0,
                    maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
                    interval = 75, fps = 10, fontsize=16, map_gridlines=True, map_labels=True, norm=None,
                    colorbar="bottom", colorbar_label=True, transparent=False, marker_color = "darkgrey",
@@ -613,6 +613,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181), fname=None, cmap = 
                                                                    colorbar=colorbar, grid=map_gridlines, colorbar_size="2.5%", 
                                                                    cmap=cmap, norm=norm)
         
+
             rv_star.map.show(theta=theta,rv=True, ax=axes[0,1],show_image=True, colorbar=colorbar, 
                             norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                             grid=map_gridlines, colorbar_size="2.5%",
@@ -773,7 +774,10 @@ def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181)):
         uni_star.map[0,0] = rv_star.map[0,0]
         image = uni_star.map.render(theta=180,projection="rect",rv=False).eval()
         
-        map_animations(rv_star, theta = theta,fname=f"{indiv_path}/emap_animation.mp4", 
+        map_animations(rv_star, theta = theta[:-1],fname=f"{indiv_path}/emap_animation.mp4", 
+                       interval = ani_interval, transparent=False, center_flux=np.nanmean(image))
+        
+        map_animations(rv_star, theta = theta[::2][:-1],fname=f"{indiv_path}/emap_animation.gif", 
                        interval = ani_interval, transparent=False, center_flux=np.nanmean(image))
         
         create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='rect', other_fname=None, 

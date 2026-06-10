@@ -165,10 +165,12 @@ def set_real_directory(fit):
 def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None,
                 transparent=False, legend=True, title = None, 
                 int_border=True, int_labels=True, ticks=True,
-                int_gridlines=False, guideline=True, guideline_color="k", 
+                int_gridlines=False, guideline=False, guideline_color="k", 
                 fontsize=16, color="sandybrown", include_map=True,
                 cmap = cm.bam, map_gridlines=True, map_labels=False, norm=None,
                 colorbar="bottom", colorbar_label=True, marker_color="darkgrey"):
+    
+    """NEED TO TEST MORE EXTRA FEATURES"""
 
     theta_face = np.linspace(-90,90,91)
     
@@ -191,12 +193,13 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
 
     if include_map:
         fig, axes = plt.subplots(nrows=2, ncols=1, squeeze=False,
-                                    sharex=False, sharey=False, figsize=(7, 8))
+                                    sharex=False, sharey=False, figsize=(7, 6))
 
         new_limb_intensity = new_no_limb_intenisty[min_range:max_range] * limb_law
         
         axes[1,0].plot(theta_all[min_range:max_range], new_limb_intensity, label="$I_{limb}$",alpha=1, color=color)
-        axes[1,0].plot(theta_all[min_range:max_range], new_no_limb_intenisty[min_range:max_range], ls=":",alpha=.5,label="$I_{no \ limb}$",c="k")
+        axes[1,0].plot(theta_all[min_range:max_range], new_no_limb_intenisty[min_range:max_range], ls="-.",alpha=.5,label="$I_{no \ limb}$",c="k")
+        
 
         if int_labels:
             axes[1,0].set_xlabel("Longitude [deg]", fontsize=fontsize)
@@ -207,6 +210,12 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
 
         if not int_border:
              axes[1,0].set_frame_on(False)
+
+        if int_gridlines:
+            axes[1,0].grid(color=marker_color,linestyle=":")
+
+        if guideline:
+            axes[1,0].axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5)  
 
         if not ticks:
             axes[1,0].set_xticklabels([])
@@ -235,7 +244,10 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
             axes[1,0].set_ylim(min_f - amp*buffer, max_f + amp*buffer)
 
         if legend:
-            axes[1,0].legend()
+            axes[1,0].legend(loc="upper right")
+
+        if map_labels:
+            axes[0,0].set_title("Flux Projection", fontsize=fontsize)
 
 
         plt.tight_layout()
@@ -246,11 +258,18 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
         else:
              flux_cbar_label = None
 
-        realistic_star.map.show(theta=phase,rv=False, ax=axes[0,0], latline=lat,
-                                        colorbar_label=flux_cbar_label,
-                                        colorbar=colorbar, grid=map_gridlines,
-                                        cmap=cmap, colorbar_size="2.5%",
-                                        file=fname, dpi = 300, transparent=transparent)
+        if norm is None:
+            realistic_star.map.show(theta=phase,rv=False, ax=axes[0,0], latline=lat,
+                                            colorbar_label=flux_cbar_label,
+                                            colorbar=colorbar, grid=map_gridlines,
+                                            cmap=cmap, colorbar_size="2.5%",
+                                            file=fname, dpi = 300, transparent=transparent)
+        else:
+            realistic_star.map.show(theta=phase,rv=False, ax=axes[0,0], latline=lat,
+                                            colorbar_label=flux_cbar_label,
+                                            colorbar=colorbar, grid=map_gridlines,
+                                            cmap=cmap, colorbar_size="2.5%", norm=norm,
+                                            file=fname, dpi = 300, transparent=transparent)
         
         plt.close()
     else:
@@ -261,16 +280,19 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
         new_limb_intensity = new_no_limb_intenisty[min_range:max_range] * limb_law
         
         plt.plot(theta_all[min_range:max_range], new_limb_intensity, label="$I_{limb}$",alpha=1, color=color)
-        plt.plot(theta_all[min_range:max_range], new_no_limb_intenisty[min_range:max_range], ls=":",alpha=.5,label="$I_{no \ limb}$",c="k")
+        plt.plot(theta_all[min_range:max_range], new_no_limb_intenisty[min_range:max_range], ls="-.",alpha=.5,label="$I_{no \ limb}$",c="k")
 
-        if labels:
+        if int_labels:
             plt.xlabel("Longitude [deg]", fontsize=fontsize)
             plt.ylabel("Intensity [normalized]", fontsize=fontsize)
+
+        if int_gridlines:
+            plt.grid(color=marker_color,linestyle=":")
 
         if title:
             plt.title(title,fontsize=fontsize*1.5)
 
-        if not border:
+        if not int_border:
             plt.gca().set_frame_on(False)
 
         if not ticks:
@@ -300,10 +322,11 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
             plt.ylim(min_f - amp*buffer, max_f + amp*buffer)
 
         if legend:
-            plt.legend()
+            plt.legend(loc="upper right")
 
 
         plt.tight_layout()
+
         if fname is None:
             plt.show()
         else:
@@ -311,128 +334,172 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
         
         plt.close()
 
-def intensity_animations(realistic_star, ratio_no_limb, phase = 0, theta = np.linspace(-90, 90, 91), fname=None,
-                 transparent=False, legend=True, labels=True, title = None, border=True, ticks=True, 
-                 fontsize=16, color="sandybrown", animated=False, interval=75, fps=10):
+def intensity_animations(realistic_star, ratio_no_limb, lat= 0, fname=None,
+                 transparent=False, legend=True, title = None, 
+                 int_border=True, int_labels=True, ticks=True, 
+                 int_gridlines=False, guideline=False, guideline_color="k", 
+                 fontsize=16, color="sandybrown", include_map=True,
+                 cmap = cm.bam, map_gridlines=True, map_labels=False, norm=None,
+                 colorbar="bottom", colorbar_label=True, marker_color="darkgrey",
+                 interval=75, fps=10):
     
+    """NEED TO TEST MORE EXTRA FEATURES"""
+    
+    theta_face = np.linspace(-90,90,91)
+    
+    theta_all = np.linspace(-180,180,181)[:-1]
 
-        
-    theta_i = np.linspace(-180,180, theta.shape[0]*2 - 1)[:-1]
-
-    if theta.shape[0] % 2:
-        min_range = (theta_i.shape[0] + 1) // 4
-        max_range = (theta_i.shape[0] + 1) // 4 * 3 + 1
-    else:
-        min_range = (theta_i.shape[0] + 1) // 4
-        max_range = (theta_i.shape[0] + 1) // 4 * 3
+    min_range = (theta_all.shape[0]) // 4
+    max_range = (theta_all.shape[0]) // 4 * 3 + 1
 
     realistic_star.map.amp /= ratio_no_limb
-    no_limb_intenisty = realistic_star.map.intensity(lat=0, lon=theta_i,rv=False,limbdarken=False).eval()
+    no_limb_intenisty = realistic_star.map.intensity(lat=lat, lon=theta_all,rv=False,limbdarken=False).eval()
     realistic_star.map.amp *= ratio_no_limb
 
     udeg = realistic_star.map.u.eval()
-    mu = np.cos(theta * np.pi/180)
+    mu = np.cos(theta_face * np.pi/180)
 
     limb_law = 1 - udeg[1]*(1-mu) - udeg[2] * (1-mu)**2
 
-    def update_intensity(frame, no_limb_intenisty):
+    intensity_info = [min_range,max_range,limb_law, theta_all[::2].astype(int)]
 
-        new_no_limb_intenisty = np.concatenate((no_limb_intenisty[frame:],no_limb_intenisty[:frame]))[min_range:max_range]
+    if include_map:
 
-        new_limb_intensity = new_no_limb_intenisty * limb_law
+        fig, axes = plt.subplots(nrows=2, ncols=1, squeeze=False,
+                                    sharex=False, sharey=False, figsize=(7, 6))
         
-        limb_line[0].set_data(theta_i[min_range:max_range], new_limb_intensity)
+        new_limb_intensity = no_limb_intenisty[min_range:max_range] * limb_law
+
+        limb_line = axes[1,0].plot(theta_all[min_range:max_range], new_limb_intensity,label="$I_{limb}$",alpha=1, color=color)
+        no_limb_line = axes[1,0].plot(theta_all[min_range:max_range], no_limb_intenisty[min_range:max_range], ls="-.",alpha=.5,label="$I_{no \ limb}$",c="k")
         
-        
-        no_limb_line[0].set_data(theta_i[min_range:max_range], new_no_limb_intenisty)
-        
-        return limb_line[0], no_limb_line[0]
+        if int_labels:
+                    axes[1,0].set_xlabel("Longitude [deg]", fontsize=fontsize)
+                    axes[1,0].set_ylabel("Intensity [normalized]", fontsize=fontsize)
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+        if title:
+            plt.title(title,fontsize=fontsize*1.5)
 
-    limb_line = ax.plot(theta_i[min_range:max_range], no_limb_intenisty[min_range:max_range] * limb_law,label="$I_{limb}$",alpha=1, color=color)
-    no_limb_line = ax.plot(theta_i[min_range:max_range], no_limb_intenisty[min_range:max_range], ls=":",alpha=.5,label="$I_{no \ limb}$",c="k")
-    ani = animation.FuncAnimation(
-                    fig, 
-                    update_intensity, 
-                    fargs=(no_limb_intenisty,),
-                    frames=theta_i[::2].astype(int), 
-                    interval=interval, 
-                    blit=True
-                )
-    
-    if labels:
-        plt.xlabel("Longitude [deg]", fontsize=fontsize)
-        plt.ylabel("Intensity [normalized]", fontsize=fontsize)
+        if not int_border:
+             axes[1,0].set_frame_on(False)
 
-    if title:
-        plt.title(title,fontsize=fontsize*1.5)
+        if int_gridlines:
+            axes[1,0].grid(color=marker_color,linestyle=":")
 
-    if not border:
-        plt.gca().set_frame_on(False)
+        if guideline:
+            axes[1,0].axvline(x=0, color=guideline_color, linestyle=':', linewidth=1.5) 
 
-    if not ticks:
-        plt.gca().set_xticklabels([])
-        plt.gca().set_yticklabels([])
-        plt.tick_params(left=False, bottom=False)
-    else:
-        plt.gca().set_xticks([-60,-30,0,30,60])
-        plt.gca().set_xticklabels([-60,-30,0,30,60])
-
-        plt.xlim(-90,90)
-
-    if legend:
-        plt.legend(loc="upper right")
-
-    plt.tight_layout()
-
-    if fname is None:
-        HTML(ani.to_html5_video())
-    else:
-        if fname.endswith("gif"):
-            if transparent:
-                ani.save(fname, writer="imagemagick", dpi=300, fps=fps, 
-                        savefig_kwargs={"transparent": True})
-            else:
-                ani.save(fname, writer="pillow", dpi=300, fps=fps, savefig_kwargs={"transparent": False})
+        if not ticks:
+            plt.gca().set_xticklabels([])
+            plt.gca().set_yticklabels([])
+            plt.tick_params(left=False, bottom=False)
         else:
-            ani.save(fname, writer="ffmpeg", dpi=300)
+            plt.gca().set_xticks([-60,-30,0,30,60])
+            plt.gca().set_xticklabels([-60,-30,0,30,60])
+
+            plt.xlim(-90,90)
+
+        if legend:
+            axes[1,0].legend(loc="upper right")
+
+        if map_labels:
+            axes[0,0].set_title("Flux Projection", fontsize=fontsize)
+
+        plt.tight_layout()
+
+        if colorbar_label and colorbar:
+            plt.subplots_adjust(hspace=0.25)
+            flux_cbar_label = "Flux [Normalized]"
+        else:
+             flux_cbar_label = None
+
+        # if norm is None:
+        realistic_star.map.show(theta=np.linspace(0,360,theta_all[::2].shape[0]+1)[:-1],rv=False, ax=axes[0,0], latline=lat,
+                                        colorbar_label=flux_cbar_label,
+                                        colorbar=colorbar, grid=map_gridlines,
+                                        cmap=cmap, colorbar_size="2.5%",
+                                        file=fname, dpi = 300, transparent=transparent,
+                                        interval=interval, fps=fps, intensity_info=intensity_info,
+                                        extra_lines = [([],limb_line),(no_limb_intenisty,no_limb_line)],)
+        # else:
+        #     realistic_star.map.show(theta=np.linspace(0,360,theta_face.shape[0]),rv=False, ax=axes[0,0], latline=lat,
+        #                                     colorbar_label=flux_cbar_label,
+        #                                     colorbar=colorbar, grid=map_gridlines,
+        #                                     cmap=cmap, colorbar_size="2.5%", norm=norm,
+        #                                     file=fname, dpi = 300, transparent=transparent,
+        #                                     interval=interval, fps=fps)
     
-    plt.close()
     
+    else:
+        def update_intensity(frame, no_limb_intenisty):
 
+            new_no_limb_intenisty = np.concatenate((no_limb_intenisty[frame:],no_limb_intenisty[:frame]))[min_range:max_range]
 
+            new_limb_intensity = new_no_limb_intenisty * limb_law
+            
+            limb_line[0].set_data(theta_all[min_range:max_range], new_limb_intensity)
+            
+            
+            no_limb_line[0].set_data(theta_all[min_range:max_range], new_no_limb_intenisty)
+            
+            return limb_line[0], no_limb_line[0]
 
-def old_plot_intensity(realistic_star, theta, fname):
-    fig, axes = plt.subplots(nrows=2, ncols=1, squeeze=False,
-                            sharex=False, sharey=False, figsize=(12, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
 
-    ax = axes[1,0]
+        limb_line = ax.plot([], [],label="$I_{limb}$",alpha=1, color=color)
+        no_limb_line = ax.plot([], [], ls="-.",alpha=.5,label="$I_{no \ limb}$",c="k")
 
-    new_theta = np.linspace(-180, 180, 61)[:-1]
+        ani = animation.FuncAnimation(
+                        fig, 
+                        update_intensity, 
+                        fargs=(no_limb_intenisty,),
+                        frames=theta_all[::2].astype(int), 
+                        interval=interval, 
+                        blit=True
+                    )
+        
+        if int_labels:
+            plt.xlabel("Longitude [deg]", fontsize=fontsize)
+            plt.ylabel("Intensity [normalized]", fontsize=fontsize)
 
-    limb = realistic_star.map.render(rv=False,theta=new_theta).eval()[:,150,150]
+        if title:
+            plt.title(title,fontsize=fontsize*1.5)
 
-    limb_image = ax.plot(new_theta, limb,label="sample")
-    ax.axvline(x=0, color='gray', linestyle='--', linewidth=1)
-    ax.axhline(y=uni_value*1.35, color='red', linestyle='--', linewidth=1,label="sample")
-    L_limb = ax.legend(loc="upper left",handlelength=0)
+        if int_gridlines:
+            plt.grid(color=marker_color,linestyle=":")
 
-    ax.set_xlabel("Angle of rotation [degrees]", fontsize=16)
-    ax.set_ylabel("Center Intensity", fontsize=16)
+        if not int_border:
+            plt.gca().set_frame_on(False)
 
-    ax.set_title("Intensity at Central Point (lon/lat = 0)",fontsize=20)
+        if not ticks:
+            plt.gca().set_xticklabels([])
+            plt.gca().set_yticklabels([])
+            plt.tick_params(left=False, bottom=False)
+        else:
+            plt.gca().set_xticks([-60,-30,0,30,60])
+            plt.gca().set_xticklabels([-60,-30,0,30,60])
 
-    plt.tight_layout()
+            plt.xlim(-90,90)
 
+            plt.ylim(0,1)
 
-    realistic_star.map.show(theta=theta,rv=False, ax=axes[0,0],show_image=True, colorbar="bottom", 
-                            extra_lines = [(limb,limb_image)],
-                            legend_list = [L_limb],
-                            uni_int = uni_value,
-                            file=fname,
-                            dpi = 300)
-    
+        if legend:
+            plt.legend(loc="upper right")
+
+        plt.tight_layout()
+
+        if fname is None:
+            HTML(ani.to_html5_video())
+        else:
+            if fname.endswith("gif"):
+                if transparent:
+                    ani.save(fname, writer="imagemagick", dpi=300, fps=fps, 
+                            savefig_kwargs={"transparent": True})
+                else:
+                    ani.save(fname, writer="pillow", dpi=300, fps=fps, savefig_kwargs={"transparent": False})
+            else:
+                ani.save(fname, writer="ffmpeg", dpi=300)
+        
     plt.close()
 
 
@@ -552,93 +619,6 @@ def scale_real_map(realistic_star, uni_star_limb, scale_value, uni_comp, ratio_n
         
         uni_star_limb.map.amp *= factor
 
-
-
-
-def generate_result_for_star(realistic_star, uni_comp, ratio_below, ratio_above, uni_value, results_path, folder_name):
-
-    corrected_amp = realistic_star.map.amp.eval()
-
-    if not os.path.isdir(f"{results_path}/{folder_name}"):
-        os.mkdir(f"{results_path}/{folder_name}")
-
-    eigeny = realistic_star.map.y.eval()
-
-    data_array = np.array([uni_comp, uni_value, ratio_below, ratio_above, corrected_amp])
-
-    np.savetxt(f"{results_path}/{folder_name}/null_map_eigeny.txt", eigeny)
-    np.savetxt(f"{results_path}/{folder_name}/null_map_data.txt", data_array)
-
-    theta = np.linspace(0, 360, 60)
-
-    # image = realistic_star.map.render(projection="rect",rv=True).eval()
-
-    realistic_star.map.show(theta=theta,rv=False, file=f"{results_path}/{folder_name}/flux_map.mp4", dpi = 300)
-    realistic_star.map.show(theta=theta,rv=True, file=f"{results_path}/{folder_name}/rv_map.mp4", dpi = 300)
-    
-    create_rv.rv_flux_map_ani(realistic_star,theta,f"{results_path}/{folder_name}/both_maps.mp4")
-
-
-    # NOTE TO SELF: May want to make this a normal amp map since no limb darkening (so set it to be 1, then back to ratio)
-    # Also fix dpi issue
-
-    realistic_star.map.amp = 1
-    plt.figure(figsize=(12, 5))
-    image = realistic_star.map.render(projection="rect",rv=False).eval()
-    plt.imshow(image, origin="lower", cmap="plasma", extent=(-180, 180, -90, 90))
-    plt.xlabel("longitude [deg]")
-    plt.ylabel("latitude [deg]")
-    plt.colorbar()
-    plt.tight_layout()
-    plt.savefig(f"{results_path}/{folder_name}/smooth_flux_rect.png", dpi = 300)
-    plt.close()
-
-
-    realistic_star.map.show(projection="rect",rv=False,colorbar=True,file=f"{results_path}/{folder_name}/flux_rect.png", dpi=300)
-
-    realistic_star.map.amp = corrected_amp
-
-    create_rv.flux_rv_line(realistic_star,theta,
-                    flux_name=f"{results_path}/{folder_name}/flux_curve.png",rv_name=f"{results_path}/{folder_name}/rv_curve.png")
-
-    create_rv.multi_phase_plot(realistic_star,fname=f"{results_path}/{folder_name}/map_slideshow.png")
-
-
-    create_rv.map_curve_ani(realistic_star,theta,fname=f"{results_path}/{folder_name}/animated_plots.mp4")
-
-    create_rv.map_curve_ani(realistic_star,theta,fname=f"{results_path}/{folder_name}/animated_plots.gif")
-
-
-    plot_intensity(realistic_star,theta,fname=f"{results_path}/{folder_name}/intensity_animation.mp4")
-
-
-    theta_i = np.linspace(-180,180,360)
-    mu = np.cos((theta_i) * np.pi/180)
-
-    realistic_star.map.amp = ratio_no_limb
-    star_intensity = realistic_star.map.intensity(lat=0, lon=theta_i,rv=False).eval()
-
-    realistic_star.map.amp = 1
-    no_limb_intenisty = realistic_star.map.intensity(lat=0, lon=theta_i,rv=False,limbdarken=False).eval()
-
-    udeg = realistic_star.map.u.eval()
-    limb_law = 1 - udeg[0]*(1-mu) - udeg[1] * (1-mu)**2
-
-
-    plt.figure(figsize=(12, 5))
-    plt.plot(theta_i,star_intensity,label="$I_{limb}$",alpha=1)
-    plt.plot(theta_i, no_limb_intenisty, ls=":",alpha=.5,label="$I_{no limb}$",c="k")
-    plt.xlabel("longitude [deg]", fontsize=24)
-    plt.ylabel("Intensity", fontsize=24)
-    plt.tight_layout()
-    plt.legend()
-    plt.savefig(f"{results_path}/{folder_name}/intensity_curve.png", dpi = 300)
-    plt.close()
-    
-    
-    se(f"{folder_name} plots are complete!")
-    se("----------------------------")
-
     
 def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1,
                      scale_star=1, scaler="lc"):
@@ -694,10 +674,17 @@ def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180
         se(f'\t\t\u2022 Creating plots for "Null map {i}"', dp=dpm)
 
 
-        phase = 0
-        intensity_line(realistic_star, ratio_no_limb, phase=phase,
-                    fname=f"{results_path}/{folder_name}/test_emap_intensity_{phase}.png")
+        lat = 20
+        phase = 90
+        # for phase in np.linspace(0,360,11).astype(int):
+        #     intensity_line(realistic_star, ratio_no_limb, phase=phase, lat=lat,
+        #                 fname=f"{results_path}/{folder_name}/test_emap_intensity_{phase}_{lat}.png")
             
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+                    fname=f"{results_path}/{folder_name}/test_emap_intensity_{lat}.gif")
+        
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+                    fname=f"{results_path}/{folder_name}/test_emap_intensity_{lat}.mp4")
     
         sys.exit()
             

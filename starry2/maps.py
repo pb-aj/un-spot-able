@@ -513,20 +513,77 @@ class MapBase(object):
 
         middle = limb_data.shape[0]//2
 
-        if legend_list:
-            legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
-            legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
+        # if legend_list:
+        #     legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
+        #     legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
 
                 
 
-            return tuple(images + lonlines
-                        + latlines_list[0] + borders
-                        + limb_image + legend_list)
+        #     return tuple(images + lonlines
+        #                 + latlines_list[0] + borders
+        #                 + limb_image + legend_list)
 
-        else:
-            return tuple(images + lonlines
+        # else:
+        #     return tuple(images + lonlines
+        #                 + latlines_list[0] + borders
+        #                 + limb_image)
+        
+        return tuple(images + lonlines
                         + latlines_list[0] + borders
                         + limb_image)
+
+    def _updatefig_intensity(
+        self,
+        i,
+        img_list,
+        image_list,
+        img_overlay,
+        overlay,
+        projection,
+        grid,
+        lonlines_list,
+        latlines_list,
+        borders,
+        kwargs,
+        extra_lines,
+        intensity_info,
+    ):
+        img_list[0].set_array(image_list[0][i])
+        images = [img_list[0]]
+
+        if overlay is not None:
+            img_overlay.set_array(overlay[i])
+            images += [img_overlay]
+        if (
+            projection == STARRY_ORTHOGRAPHIC_PROJECTION
+            and grid
+            and len(image_list[0]) > 1
+            and self.nw is None
+        ):
+            lonlines = lonlines_list[0]
+            lons = self._get_ortho_longitude_lines(i=i, **kwargs)
+            for n, l in enumerate(lons):
+                lonlines[n].set_xdata(l[0])
+                lonlines[n].set_ydata(l[1])
+
+        print(i)
+        frame = intensity_info[3][i]
+
+        limb_image = extra_lines[0][1]
+        limb_data = extra_lines[0][0]
+
+        no_limb_image = extra_lines[1][1]
+        no_limb_data = extra_lines[1][0]
+
+        new_no_limb_intenisty = np.concatenate((no_limb_data[frame:],no_limb_data[:frame]))[intensity_info[0]:intensity_info[1]]    
+        no_limb_image[0].set_ydata(new_no_limb_intenisty)
+
+        new_limb_intensity = new_no_limb_intenisty * intensity_info[2]
+        limb_image[0].set_ydata(new_limb_intensity)
+
+        return tuple(images + lonlines
+                    + latlines_list[0] + borders
+                    + limb_image + no_limb_image)
 
     def reset(self, **kwargs):
         """Reset all map coefficients and attributes.
@@ -651,6 +708,7 @@ class MapBase(object):
         extra_lines = kwargs.pop("extra_lines",None)
         uni_int = kwargs.pop("uni_int",1)
         latline = kwargs.pop("latline",None)
+        intensity_info = kwargs.pop("intensity_info",None)
         """"""
         legend_list = kwargs.pop("legend_list",None)
         transparent = kwargs.pop("transparent",False)
@@ -803,20 +861,17 @@ class MapBase(object):
                 borders += ax.plot(xp, yp, "k-", alpha=1, lw=1.5, zorder=0)
                 borders += ax.plot(xm, ym, "k-", alpha=1, lw=1.5, zorder=0)
                 if not latline is None:
-                    lats = self._get_ortho_latitude_lines(**kwargs, extra_degree=50)
+                    lats = self._get_ortho_latitude_lines(extra_lat=latline,**kwargs)
                     latlines = [None for n in lats]
-                    print(len(lats))
-                    i = 1
                     for n, l in enumerate(lats):
-                        # if n == (len(lats) - 1):
-                        #     (latlines[n],) = ax.plot(
-                        #         l[0], l[1], "k-", lw=1, alpha=0.5, zorder=0
-                        #     )
-                        # else:
+                        if n >= (len(lats) - 2):
                             (latlines[n],) = ax.plot(
-                                l[0], l[1], "k-", lw=i, alpha=0.5, zorder=0
+                                l[0], l[1], "k:", lw=1, alpha=1, zorder=0
                             )
-                            i += 1
+                        else:
+                            (latlines[n],) = ax.plot(
+                                l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
+                            )
 
                 else:
                     lats = self._get_ortho_latitude_lines(**kwargs)
@@ -899,7 +954,36 @@ class MapBase(object):
 
             blit_status = True
 
-            if extra_image and extra_lines:
+            if intensity_info:
+                img_list = [img]
+                image_list = [image]
+                lonlines_list = [lonlines]
+                latlines_list = [latlines]
+
+                ani = FuncAnimation(
+                    fig,
+                    self._updatefig_intensity,
+                    fargs=(
+                        img_list,
+                        image_list,
+                        img_overlay,
+                        overlay,
+                        projection,
+                        grid,
+                        lonlines_list,
+                        latlines_list,
+                        borders,
+                        kwargs,
+                        extra_lines,
+                        intensity_info,
+                    ),
+                    interval=interval,
+                    blit=blit_status,
+                    frames=image.shape[0],
+                )
+
+
+            elif extra_image and extra_lines:
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -986,7 +1070,6 @@ class MapBase(object):
                     frames=image.shape[0],
                 )
                 
-
             else:
 
                 
@@ -1351,11 +1434,11 @@ class YlmBase(legacy.YlmBase):
             get_val(self._f),
         )
 
-    def _get_ortho_latitude_lines(self, **kwargs):
+    def _get_ortho_latitude_lines(self, extra_lat=None, **kwargs,):
         get_val = evaluator(**kwargs)
         inc = get_val(self._inc)
         obl = get_val(self._obl)
-        return get_ortho_latitude_lines(inc=inc, obl=obl)
+        return get_ortho_latitude_lines(inc=inc, obl=obl, extra_lat=extra_lat)
 
     def _get_ortho_longitude_lines(self, i=0, **kwargs):
         get_val = evaluator(**kwargs)
@@ -2174,6 +2257,9 @@ class LimbDarkenedBase(object):
         return ()
     
     def _updatefig_line(i):
+        return ()
+    
+    def _updatefig_intensity(i):
         return ()
 
     def _get_flux_kwargs(self, kwargs):

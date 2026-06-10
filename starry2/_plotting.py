@@ -73,7 +73,7 @@ def get_moll_longitude_lines(dlon=np.pi / 6, npts=1000, niter=100):
 
 
 def get_ortho_latitude_lines(
-    inc=np.pi / 2, obl=0, fproj=0, dlat=np.pi / 6, npts=1000, extra_degree=None
+    inc=np.pi / 2, obl=0, fproj=0, dlat=np.pi / 6, npts=1000, extra_lat=None
 ):
     """
 
@@ -88,8 +88,8 @@ def get_ortho_latitude_lines(
     res = []
     latlines = np.arange(-np.pi / 2, np.pi / 2, dlat)[1:]
 
-    if not extra_degree is None:
-        latlines_deg = np.append(latlines_deg, extra_degree * np.pi / 180)
+    if not extra_lat is None:
+        latlines = np.append(latlines, extra_lat * np.pi / 180)
 
     for lat in latlines:
 

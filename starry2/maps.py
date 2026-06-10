@@ -566,7 +566,6 @@ class MapBase(object):
                 lonlines[n].set_xdata(l[0])
                 lonlines[n].set_ydata(l[1])
 
-        print(i)
         frame = intensity_info[3][i]
 
         limb_image = extra_lines[0][1]

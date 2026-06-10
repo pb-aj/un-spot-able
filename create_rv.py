@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib
 import matplotlib as mpl
 matplotlib.rcParams['axes.formatter.useoffset'] = False
-matplotlib.use('TkAgg')
+matplotlib.use('TkAgg') #test if this line is needed
 import matplotlib.pyplot as plt
 import starry2 as starry
 from cmcrameri import cm

@@ -80,36 +80,3 @@ def initstar(fit, ydeg, udeg=[], include_rv=False):
                 se("----------------------------------------------------------------------------",dp = dpm)
 
     return star
-
-"""
-[MAY REMOVE THIS]
-"""
-def initsystem(fit, ydeg):
-    '''
-    Uses a fit object to build the respective starry objects. Useful
-    because starry objects cannot be pickled. Returns a tuple of
-    (star, planet, system).
-    '''
-    
-    cfg = fit.cfg
-
-    star = starry.Primary(starry.Map(ydeg=1, amp=1),
-                          m   =cfg.star.m,
-                          r   =cfg.star.r,
-                          prot=cfg.star.prot)
-
-    planet = starry.kepler.Secondary(starry.Map(ydeg=ydeg),
-                                     m    =cfg.planet.m,
-                                     r    =cfg.planet.r,
-                                     porb =cfg.planet.porb,
-                                     prot =cfg.planet.prot,
-                                     Omega=cfg.planet.Omega,
-                                     ecc  =cfg.planet.ecc,
-                                     w    =cfg.planet.w,
-                                     t0   =cfg.planet.t0,
-                                     inc  =cfg.planet.inc,
-                                     theta0=180)
-
-    system = starry.System(star, planet)
-
-    return star, planet, system

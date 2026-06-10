@@ -621,7 +621,7 @@ def scale_real_map(realistic_star, uni_star_limb, scale_value, uni_comp, ratio_n
 
     
 def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1,
-                     scale_star=1, scaler="lc"):
+                     scale_star=1, scaler="lc", lat=20, phase = 0):
 
     se("\tCalculating Flux Range Limits\n", dp=dpm)
 
@@ -672,21 +672,6 @@ def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180
             
 
         se(f'\t\t\u2022 Creating plots for "Null map {i}"', dp=dpm)
-
-
-        lat = 20
-        phase = 90
-        # for phase in np.linspace(0,360,11).astype(int):
-        #     intensity_line(realistic_star, ratio_no_limb, phase=phase, lat=lat,
-        #                 fname=f"{results_path}/{folder_name}/test_emap_intensity_{phase}_{lat}.png")
-            
-        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
-                    fname=f"{results_path}/{folder_name}/test_emap_intensity_{lat}.gif")
-        
-        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
-                    fname=f"{results_path}/{folder_name}/test_emap_intensity_{lat}.mp4")
-    
-        sys.exit()
             
 
         limb_int = uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,91),rv=False).eval()
@@ -707,6 +692,15 @@ def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180
         create_emaps.emap_plot(realistic_star, indiv_path=f"{results_path}/{folder_name}", proj='moll', other_fname=None, 
                  transparent=False, colorbar=True, center_flux=np.nanmax(limb_int))
         realistic_star.map.amp *= ratio_no_limb
+
+        intensity_line(realistic_star, ratio_no_limb, phase = phase, lat = lat, 
+                    fname=f"{results_path}/{folder_name}/emap_intensity_l{lat}_p{phase}.png")
+
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+                    fname=f"{results_path}/{folder_name}/emap_intensity_animation_l{lat}.gif")
+        
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+                    fname=f"{results_path}/{folder_name}/emap_intensity_animation_l{lat}.mp4")
 
         se(f'\033[38;5;208m\t\t"Null map {i}" plots are complete!\033[0m', dp=dpm)
         se("\t\t------------------------------------------------", dp=dpm)

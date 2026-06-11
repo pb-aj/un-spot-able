@@ -213,7 +213,7 @@ def flux_rv_line(rv_star,theta = np.linspace(-180, 180, 361), flux=None, rv=None
 
         if labels:
             plt.xlabel("Angle of rotation [degrees]", fontsize=fontsize)
-            plt.ylabel("Flux [normalized]", fontsize=fontsize)
+            plt.ylabel("Radial Velocity [m/s]", fontsize=fontsize)
 
         if title:
             plt.title(title,fontsize=fontsize*1.5)
@@ -307,12 +307,13 @@ def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,center_flux=0):
         plt.show()
     plt.close(fig)
 
-def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cmap = cm.bam, center_flux=0,
+def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cmap = cm.buda,
                    maps_only = False, flux_only = False, rv_only = False, color="sandybrown",
                    interval = 75, fps = 10, fontsize=16, map_gridlines=True, map_labels=True, norm=None,
                    colorbar="bottom", colorbar_label=True, transparent=False, marker_color = "darkgrey",
                    curve_border=True, curve_labels=True, ticks=True, legend=False, curve_gridlines=False,
-                   centerline=True, cline_color="k",guideline=True, guideline_color="k"):
+                   centerline=True, cline_color="k",guideline=True, guideline_color="k", 
+                   dpi=300, html5_video=True):
     """
     {desc} - needs so muuch work vvvv
 
@@ -407,14 +408,16 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
             
                 if norm is None:
                     rv_star.map.show(theta=theta, ax=axes[0,0], rv=False,show_image=True, colorbar=colorbar, 
-                                    norm=mpl.colors.CenteredNorm(vcenter=center_flux), colorbar_label = flux_cbar_label,
+                                    colorbar_label = flux_cbar_label,
                                     cmap=cmap, grid=map_gridlines, colorbar_size="2.5%",
-                                    file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                    file=fname, dpi = dpi, html5_video=html5_video,
+                                    transparent=transparent, interval=interval, fps=fps)
                 else:
                     rv_star.map.show(theta=theta, ax=axes[0,0], rv=False,show_image=True, colorbar=colorbar, 
                                     norm=norm, colorbar_label = flux_cbar_label, cmap=cmap,
                                     grid=map_gridlines, colorbar_size="2.5%",
-                                    file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                    file=fname, dpi = dpi, html5_video=html5_video,
+                                    transparent=transparent, interval=interval, fps=fps)
             
             else:
 
@@ -479,10 +482,11 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                     rv_star.map.show(theta=theta,rv=False, ax=axes[0,0], 
                                         colorbar_label=flux_cbar_label, show_image=True,
                                         colorbar=colorbar, grid=map_gridlines,
-                                        cmap=cmap, norm=mpl.colors.CenteredNorm(vcenter=center_flux),
+                                        cmap=cmap,
                                         extra_lines = [(flux_data,flux_image)],
                                         legend_list = legend_list,
-                                        file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                        file=fname, dpi = dpi, html5_video=html5_video,
+                                        transparent=transparent, interval=interval, fps=fps)
                 else:
                     rv_star.map.show(theta=theta,rv=False, ax=axes[0,0], 
                                         colorbar_label=flux_cbar_label, show_image=True,
@@ -490,7 +494,8 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                         cmap=cmap, norm=norm,
                                         extra_lines = [(flux_data,flux_image)],
                                         legend_list = legend_list,
-                                        file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                        file=fname, dpi = dpi, html5_video=html5_video,
+                                        transparent=transparent, interval=interval, fps=fps)
 
         if not flux_only:    
             if maps_only:
@@ -512,7 +517,8 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                 rv_star.map.show(theta=theta,rv=True, ax=axes[0,0],show_image=True, colorbar=colorbar, 
                             norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                             grid=map_gridlines, colorbar_size="2.5%",
-                            file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                            file=fname, dpi = dpi, html5_video=html5_video,
+                            transparent=transparent, interval=interval, fps=fps)
             
             else:
                 fig, axes = plt.subplots(nrows=2, ncols=1, squeeze=False,
@@ -573,13 +579,15 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                     grid=map_gridlines,
                                     extra_lines = [(rv_data,rv_image)],
                                     legend_list = [L_rv],
-                                    file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                    file=fname, dpi = dpi, html5_video=html5_video,
+                                    transparent=transparent, interval=interval, fps=fps)
                 else:
                     rv_star.map.show(theta=theta,rv=True, ax=axes[0,0],show_image=True, colorbar=colorbar, 
                                     norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                                     grid=map_gridlines,
                                     extra_lines = [(rv_data,rv_image)],
-                                    file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                    file=fname, dpi = dpi, html5_video=html5_video,
+                                    transparent=transparent, interval=interval, fps=fps)
     else:
 
         if maps_only:
@@ -606,7 +614,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                                                    colorbar_label=flux_cbar_label, show_image=False,
                                                                    colorbar=colorbar, grid=map_gridlines,
                                                                    cmap=cmap, colorbar_size="2.5%", 
-                                                                   norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+                                                                   )
             else:
                 img1,image1,lonlines1,latlines1 = rv_star.map.show(theta=theta,rv=False, ax=axes[0,0], 
                                                                    colorbar_label=flux_cbar_label, show_image=False,
@@ -618,7 +626,8 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                             norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                             grid=map_gridlines, colorbar_size="2.5%",
                             extra_image=[img1,image1,lonlines1,latlines1],
-                            file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                            file=fname, dpi = dpi, html5_video=html5_video,
+                            transparent=transparent, interval=interval, fps=fps)
             
             
         else:
@@ -700,7 +709,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
             else:
                 img1,image1,lonlines1,latlines1 = rv_star.map.show(theta=theta,rv=False, ax=axes[0,0], colorbar_label=flux_cbar_label,
                                                                 show_image=False,colorbar=colorbar, grid=map_gridlines,
-                                                                cmap=cmap, norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+                                                                cmap=cmap)
 
             if not curve_border:
                 ax_flux.set_frame_on(False)
@@ -713,14 +722,16 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                 extra_image=[img1,image1,lonlines1,latlines1],
                                 extra_lines = [(flux_data,flux_image),(rv_data,rv_image)],
                                 legend_list = [L_flux,L_rv],
-                                file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                file=fname, dpi = dpi, html5_video=html5_video,
+                                transparent=transparent, interval=interval, fps=fps)
             else:
                 rv_star.map.show(theta=theta,rv=True, ax=axes[0,1],show_image=True, colorbar=colorbar, 
                                 norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                                 grid=map_gridlines,
                                 extra_image=[img1,image1,lonlines1,latlines1],
                                 extra_lines = [(flux_data,flux_image),(rv_data,rv_image)],
-                                file=fname, dpi = 300, transparent=transparent, interval=interval, fps=fps)
+                                file=fname, dpi = dpi, html5_video=html5_video,
+                                transparent=transparent, interval=interval, fps=fps)
     plt.close(fig)
 
 
@@ -775,10 +786,10 @@ def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181)):
         image = uni_star.map.render(theta=180,projection="rect",rv=False).eval()
         
         map_animations(rv_star, theta = theta[:-1],fname=f"{indiv_path}/emap_animation.mp4", 
-                       interval = ani_interval, transparent=False, center_flux=np.nanmean(image))
+                       interval = ani_interval, transparent=False)
         
         map_animations(rv_star, theta = theta[::2][:-1],fname=f"{indiv_path}/emap_animation.gif", 
-                       interval = ani_interval, transparent=False, center_flux=np.nanmean(image))
+                       interval = ani_interval, transparent=False)
         
         create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='rect', other_fname=None, 
                  transparent=False, colorbar=True, center_flux=np.nanmean(image))

@@ -1,199 +1,101 @@
+"""
+File to calculate eigens following eigenmapping process.
+Code sourced from: https://github.com/rychallener/theresa
+Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
+
+Modifications made by A.J. deVaux (https://github.com/pb-aj/un-spot-able)
+"""
+
 import numpy as np
 import pca
 
-def mkcurves(star, nt, lmax, y00, ncurves=None, method='pca', negative = False, 
-             remove_y00 = False, all_curves = False, factor_bool = True, start_l=1):
+def mkcurves(star, nt, lmax, ncurves, use_y00):
     """
-    Generates light curves from a star+planet system at times t,
-    for positive and negative spherical harmonics with l up to lmax.
+    Generates light curves for each spherical harmonic mode (excludin Y00) of passed star
+    Runs the light curve design matrix (lcs) through pca to generate eigencurve design matrix
+    and eigenmaps with observable and null components separated
 
     Arguments
     ---------
     star: object
         A starry star object, initialized with a cfg file
 
-    t: 1D array
-        Array of times at which to calculate eigencurves
+    nt: integer
+        Length of each light curve array
 
     lmax: integer
-        Maximum l to use in spherical harmonic maps
-
-    y00: 1D array
-        Light curve of a normalized, uniform map
+        Maximum spherical harmonic degree (l) to use
 
     ncurves: integer
-        Number of light curves to generate.  If left as None, it will equal nharm.
-        nharm is ((lmax + 1)**2 - 1) by default but will be 
-        ((lmax + 1)**2 - 1) * 2 if ngeative is True
+        Number of light curves to generate.  
+        If left as None, it will equal nharm which is (lmax + 1)**2 - 1
 
-    method: string
-        Method to use for pca of light curve, by default it is pca.
-        The other option is TSVD and is optimal for exoplanets
-
-    negative: bool
-        Designates if negative light curves should be generated.
-        If True, negative curves will be made, otherwise only positive will be generated
-        See factor_bool to learn about making only negative curves
-        *NOTE* Need this to be True for TSVD method!
-
-    remove_y00: bool
-        Determines if the uniform map should be subtracted off.
-        If True, y00 will be removed from each light curve.
-        Otherwise there will be no subtraction.
-
-    all_curves: bool
-        When True, this will create eigenmaps for every curve.  
-        *NOTE* This is only usable with method="pca" and negative=True
-        When False, then only the inputted number of curves will be plotted.
-    
-    factor_bool: bool
-        When True, positive maps will be used.  When False, negative maps are used.
-        *NOTE* This is only possible when negative is False.
-        
+    use_y00: boolean
+        Determines if code should remove y00 when calculating light curves
+        Based on value in configuration file
 
     Returns
     -------
     eigeny: 2D array
-        nharm x ny array of y coefficients for each harmonic. nharm is
-        the number of harmonics, including positive and negative versions
-        and excluding Y00. That is, 2 * ((lmax + 1)**2 - 1). ny is the
-        number of y coefficients to describe a harmonic with degree lmax.
-        That is, (lmax + 1)**2.
+        (ncurves, ny) array of y coefficients for each harmonic. 
+        ncurves is the number of harmonics, including only positive versions and excluding Y00: (lmax + 1)**2 - 1
+        ny is the number of y coefficients to describe a harmonic with degree lmax: (lmax + 1)**2 (includes y00)
 
     evalues: 1D array
-        nharm length array of eigenvalues
+        (ncurves) array of eigenvalues sorted by variance
 
     evectors: 2D array
-        nharm x nt array of normalized (unit) eigenvectors
+        (ncurves, nt) array of normalized (unit) eigenvectors
 
     proj: 2D array ("ecurves")
-        nharm x nt array of the data projected in the new space (the PCA
-        "eigencurves"). The imaginary part is discarded, if nonzero.
+        (ncurves, nt) array of the data projected in the new space (the PCA "eigencurves") 
+        Note, the imaginary part is discarded
 
     lcs: 2D array
-        ncurves x nt array of the light curves that are passed into pca
-        to generate the other return values.
-        *NOTE* ncurves may be 2xnharm or nharm depending on the value of negative 
-
-    Extra Notes
-    -------
-    The following lists out ways to perform various pca calculations based on different input params.
-    Generally, it is assumed that star, t, lmax, y00, & ncurves are changed by the user independent of these examples.
-
-    Single Version PCA:
-        Positive Changes - default parameters
-        Negative Changes - Change factor_bool=False
-
-    Exoplanet TSVD:
-        Changes - Negative = True; remove_y00=True
-    
-    Standard PCA:
-        Changes - Negative = True; remove_y00= True or False
-    
-    Complete PCA:
-        Changes - Negative = True; remove_y00= True or False; all_curves = True
-
-    File taken from Ryan Challener's github, 2024-10. Credit for
-    Modifications made by A.J. deVaux.
+        (ncurves, nt) array of the light curves that are passed into pca to generate the other return values
     """    
 
+    #Set up needed arrays
     thet = np.linspace(0, 360, nt)
+    lcs = np.zeros((ncurves, nt))
 
-    if negative:
-        # Create harmonic maps of the planet, excluding Y00
-        # (lmax**2 maps, plus a negative version for all but Y00)
-        nharm = ((lmax + 1)**2 - start_l) * 2
-        lcs = np.zeros((nharm, nt))
-        ind = 0
-        for i, l in enumerate(range(1, lmax + 1)):
-            for j, m in enumerate(range(-l, l + 1)):  
-                star.map[l, m] =  1.0 #set the map to be positive
-                lcs[ind] = star.map.flux(theta=thet).eval()
-        
+    # Remove uniform component from light curves if use_y00 == False
+    # starry includes this by default, so no changes needed if use_y00 == True
+    if not use_y00:
+        star.map[:,:] = 0
 
-                star.map[l, m] = -1.0 #set the map to be negative
-                lcs[ind+1] = star.map.flux(theta=thet).eval()
+    # Loop through each harmonic map of the star, excluding Y00, to extract light curve
+    ind = 0
+    for i, l in enumerate(range(1, lmax + 1)):
+        for j, m in enumerate(range(-l, l + 1)):  
+            star.map[l, m] =  1 #set the map based on factor
+            lcs[ind] = star.map.flux(theta=thet).eval()
 
+            star.map[l, m] = 0.0 #reset map to initial state
+            ind += 1
 
-                star.map[l, m] = 0.0 #reset map to initial state
-                ind += 2
-       
-    else:
-
-        # Check for if only positive or negative maps should be made
-        if factor_bool:
-            factor = 1.0
-        else:
-            factor = -1.0
-    
-
-        # Create harmonic maps of the planet, excluding Y00
-        # (lmax**2 maps - 1, no negative/positive maps depending on factor_bool)
-        nharm = ((lmax + 1)**2 - start_l) 
-        lcs = np.zeros((nharm, nt))
-        ind = 0
-        for i, l in enumerate(range(1, lmax + 1)):
-            for j, m in enumerate(range(-l, l + 1)):  
-                star.map[l, m] =  factor #set the map based on factor
-                lcs[ind] = star.map.flux(theta=thet).eval()
-
-                star.map[l, m] = 0.0 #reset map to initial state
-                ind += 1
-
-    # Subtact uniform map contribution if remove_y00 = True 
-    # (starry includes this in all light curves)
-    # (subtraction more useful in exoplanet mapping)
-    if remove_y00:
-        lcs -= y00
             
-    # Run PCA to determine orthogonal light curves
-    if ncurves is None:
-        ncurves = nharm
-    
-    evalues, evectors, proj = pca.pca(lcs, method=method, ncomp=ncurves)
+    # Run PCA to create orthogonal eigencurve basis set
+    evalues, evectors, proj = pca.pca(lcs, ncomp=ncurves)
 
-    # Discard imaginary part of eigencurves to appease numpy
+    # Discard imaginary part of eigens to appease numpy
     proj = np.real(proj)
     evalues = np.real(evalues)
     evectors = np.real(evectors)
 
-    #Check negative value to determine how many curves exist
-    if negative:
+    # Utilize eigens to generate eigenmaps using spherical harmonic coefficients
+    eigeny = np.zeros((ncurves, (lmax + 1)**2))
+    eigeny[:,0] = 1.0 # Y00 = 1 for all maps
 
-        #Double the number of curves depending on input parameters
-        if method == 'pca' and all_curves:
-            ncurves = ncurves * 2
-
-        # Convert orthogonal light curves into maps
-        eigeny = np.zeros((ncurves, (lmax + 1)**2))
-        eigeny[:,0] = 1.0 # Y00 = 1 for all maps
-
-        for j in range(ncurves):
-            yi  = 1
-            shi = 0
-            for l in range(1, lmax + 1):
-                for m in range(-l, l + 1):
-                    # (ok because evectors has only been sorted along
-                    #  one dimension)
-                    eigeny[j,yi] = evectors.T[j,shi] - evectors.T[j,shi+1]
-                    yi  += 1
-                    shi += 2
-
-    else:
-        # Convert orthogonal light curves into maps
-        eigeny = np.zeros((ncurves, (lmax + 1)**2))
-        eigeny[:,0] = 1.0 # Y00 = 1 for all maps
-
-        for j in range(ncurves):
-            yi  = 1
-            shi = 0
-            for l in range(1, lmax + 1):
-                for m in range(-l, l + 1):
-                    # (ok because evectors has only been sorted along
-                    #  one dimension)
-                    eigeny[j,yi] = evectors.T[j,shi] #does not subtract negative part due to lack of curves
-                    yi  += 1
-                    shi += 1
+    for j in range(ncurves):
+        yi  = 1
+        shi = 0
+        for l in range(1, lmax + 1):
+            for m in range(-l, l + 1):
+                # (ok because evectors has only been sorted along one dimension)
+                eigeny[j,yi] = evectors.T[j,shi]
+                yi  += 1
+                shi += 1
 
     return eigeny, evalues, evectors, proj, lcs
 

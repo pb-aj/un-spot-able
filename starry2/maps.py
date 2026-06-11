@@ -341,9 +341,10 @@ class MapBase(object):
             for n, l in enumerate(lons):
                 lonlines[n].set_xdata(l[0])
                 lonlines[n].set_ydata(l[1])
+
         return tuple(images + lonlines + latlines + borders)
     
-    def _updatefig2(
+    def _updatefig_maps(
         self,
         i,
         img_list,
@@ -380,9 +381,10 @@ class MapBase(object):
 
                 lonlines2[n].set_xdata(l[0])
                 lonlines2[n].set_ydata(l[1])
+
         return tuple(images + lonlines + images2 + lonlines2 + latlines_list[0] + borders + latlines_list[1])
     
-    def _updatefig3(
+    def _updatefig_all(
         self,
         i,
         img_list,
@@ -398,11 +400,14 @@ class MapBase(object):
         extra_lines,
         legend_list,
     ):
+        
         img_list[0].set_array(image_list[0][i])
         images = [img_list[0]]
 
         img_list[1].set_array(image_list[1][i])
         images2 = [img_list[1]]
+
+
         if overlay is not None:
             img_overlay.set_array(overlay[i])
             images += [img_overlay]
@@ -437,16 +442,34 @@ class MapBase(object):
 
         middle = flux_data.shape[0]//2
 
-        legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2f}")
-        legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2f}")
+        if legend_list and grid:
+            legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2g}")
+            legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2g}")
 
             
 
-        return tuple(images + lonlines + images2 + lonlines2 
+            return tuple(images + lonlines + images2 + lonlines2 
                      + latlines_list[0] + borders + latlines_list[1]
                      + flux_image + rv_image + legend_list)
+        
+        elif legend_list:
+            legend_list[0].get_texts()[0].set_text(f"$F_0$: {round(new_flux_data[middle], 2):.2g}")
+            legend_list[1].get_texts()[0].set_text(f"$RV_0$: {round(new_rv_data[middle], 2):.2g}")
+
+            return tuple(images + images2 
+                     + borders
+                     + flux_image + rv_image + legend_list)
+        elif grid:
+            return tuple(images + lonlines + images2 + lonlines2 
+                     + latlines_list[0] + borders + latlines_list[1]
+                     + flux_image + rv_image)
+        
+        else:
+            return tuple(images + images2
+                     + borders
+                     + flux_image + rv_image)
     
-    def _updatefig4(
+    def _updatefig_line(
         self,
         i,
         img_list,
@@ -490,14 +513,76 @@ class MapBase(object):
 
         middle = limb_data.shape[0]//2
 
-        legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
-        legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
+        # if legend_list:
+        #     legend_list[0].get_texts()[0].set_text(f"$I_0$: {round(new_limb_data[middle], 2):.2f}")
+        #     legend_list[0].get_texts()[1].set_text("$I_0/I_{uni}$: "+ f"{round(new_limb_data[middle] / uni_int, 2):.2f}")
 
-            
+                
+
+        #     return tuple(images + lonlines
+        #                 + latlines_list[0] + borders
+        #                 + limb_image + legend_list)
+
+        # else:
+        #     return tuple(images + lonlines
+        #                 + latlines_list[0] + borders
+        #                 + limb_image)
+        
+        return tuple(images + lonlines
+                        + latlines_list[0] + borders
+                        + limb_image)
+
+    def _updatefig_intensity(
+        self,
+        i,
+        img_list,
+        image_list,
+        img_overlay,
+        overlay,
+        projection,
+        grid,
+        lonlines_list,
+        latlines_list,
+        borders,
+        kwargs,
+        extra_lines,
+        intensity_info,
+    ):
+        img_list[0].set_array(image_list[0][i])
+        images = [img_list[0]]
+
+        if overlay is not None:
+            img_overlay.set_array(overlay[i])
+            images += [img_overlay]
+        if (
+            projection == STARRY_ORTHOGRAPHIC_PROJECTION
+            and grid
+            and len(image_list[0]) > 1
+            and self.nw is None
+        ):
+            lonlines = lonlines_list[0]
+            lons = self._get_ortho_longitude_lines(i=i, **kwargs)
+            for n, l in enumerate(lons):
+                lonlines[n].set_xdata(l[0])
+                lonlines[n].set_ydata(l[1])
+
+        frame = intensity_info[3][i]
+
+        limb_image = extra_lines[0][1]
+        limb_data = extra_lines[0][0]
+
+        no_limb_image = extra_lines[1][1]
+        no_limb_data = extra_lines[1][0]
+
+        new_no_limb_intenisty = np.concatenate((no_limb_data[frame:],no_limb_data[:frame]))[intensity_info[0]:intensity_info[1]]    
+        no_limb_image[0].set_ydata(new_no_limb_intenisty)
+
+        new_limb_intensity = new_no_limb_intenisty * intensity_info[2]
+        limb_image[0].set_ydata(new_limb_intensity)
 
         return tuple(images + lonlines
-                     + latlines_list[0] + borders
-                     + limb_image + legend_list)
+                    + latlines_list[0] + borders
+                    + limb_image + no_limb_image)
 
     def reset(self, **kwargs):
         """Reset all map coefficients and attributes.
@@ -601,14 +686,18 @@ class MapBase(object):
         cmap = kwargs.pop("cmap", "plasma")
         grid = kwargs.pop("grid", True)
         interval = kwargs.pop("interval", 75)
+        #Added fps setting for gifs
+        fps = kwargs.pop("fps",50)
         file = kwargs.pop("file", None)
         html5_video = kwargs.pop("html5_video", True)
-        dpi = kwargs.pop("dpi", None)
+        dpi = kwargs.pop("dpi", 300)
         figsize = kwargs.pop("figsize", None)
         bitrate = kwargs.pop("bitrate", None)
         colorbar = kwargs.pop("colorbar", False)
+        colorbar_label = kwargs.pop("colorbar_label", None)
+        #added label for colorbar
         colorbar_size = kwargs.pop("colorbar_size", "5%")
-        colorbar_pad = kwargs.pop("colorbar_pad", 0.05)
+        colorbar_pad = kwargs.pop("colorbar_pad", 0.03)
         show_image = kwargs.pop("show_image",True) #Adding option to not display the plot
         """show_image being False does not display any image but instead returns a list 
         constaining the img, image, and lonlines values of the animated image"""
@@ -617,6 +706,8 @@ class MapBase(object):
         from a previously made map.show call where show_image = False"""
         extra_lines = kwargs.pop("extra_lines",None)
         uni_int = kwargs.pop("uni_int",1)
+        latline = kwargs.pop("latline",None)
+        intensity_info = kwargs.pop("intensity_info",None)
         """"""
         legend_list = kwargs.pop("legend_list",None)
         transparent = kwargs.pop("transparent",False)
@@ -768,12 +859,26 @@ class MapBase(object):
             if grid:
                 borders += ax.plot(xp, yp, "k-", alpha=1, lw=1.5, zorder=0)
                 borders += ax.plot(xm, ym, "k-", alpha=1, lw=1.5, zorder=0)
-                lats = self._get_ortho_latitude_lines(**kwargs)
-                latlines = [None for n in lats]
-                for n, l in enumerate(lats):
-                    (latlines[n],) = ax.plot(
-                        l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
-                    )
+                if not latline is None:
+                    lats = self._get_ortho_latitude_lines(extra_lat=latline,**kwargs)
+                    latlines = [None for n in lats]
+                    for n, l in enumerate(lats):
+                        if n >= (len(lats) - 2):
+                            (latlines[n],) = ax.plot(
+                                l[0], l[1], "k:", lw=1, alpha=1, zorder=0
+                            )
+                        else:
+                            (latlines[n],) = ax.plot(
+                                l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
+                            )
+
+                else:
+                    lats = self._get_ortho_latitude_lines(**kwargs)
+                    latlines = [None for n in lats]
+                    for n, l in enumerate(lats):
+                        (latlines[n],) = ax.plot(
+                            l[0], l[1], "k-", lw=0.5, alpha=0.5, zorder=0
+                        )
                 lons = self._get_ortho_longitude_lines(**kwargs)
                 lonlines = [None for n in lons]
                 for n, l in enumerate(lons):
@@ -822,7 +927,11 @@ class MapBase(object):
             cax = divider.append_axes(
                 position="bottom", size=colorbar_size, pad=colorbar_pad
             )
-            fig.colorbar(img, cax=cax, orientation="horizontal")
+            if colorbar_label:
+                cbar = fig.colorbar(img, cax=cax, orientation="horizontal")
+                cbar.set_label(colorbar_label, size=12)
+            else:
+                fig.colorbar(img, cax=cax, orientation="horizontal")
 
         # Add a colorbar
         elif colorbar:
@@ -830,16 +939,50 @@ class MapBase(object):
                 fig.subplots_adjust(right=0.85)
             divider = make_axes_locatable(ax)
             cax = divider.append_axes(
-                position="right", size=colorbar_size, pad=colorbar_pad
+                position="right", size=colorbar_size, pad=colorbar_pad, 
             )
-            fig.colorbar(img, cax=cax, orientation="vertical")
+            if colorbar_label:
+                cbar = fig.colorbar(img, cax=cax, orientation="vertical")
+                cbar.set_label(colorbar_label, size=12)
+            else:
+                fig.colorbar(img, cax=cax, orientation="vertical")
 
         # Display or save the image / animation
         if animated:
+                
 
-            if extra_image and extra_lines:
+            blit_status = True
 
-                # print("1")
+            if intensity_info:
+                img_list = [img]
+                image_list = [image]
+                lonlines_list = [lonlines]
+                latlines_list = [latlines]
+
+                ani = FuncAnimation(
+                    fig,
+                    self._updatefig_intensity,
+                    fargs=(
+                        img_list,
+                        image_list,
+                        img_overlay,
+                        overlay,
+                        projection,
+                        grid,
+                        lonlines_list,
+                        latlines_list,
+                        borders,
+                        kwargs,
+                        extra_lines,
+                        intensity_info,
+                    ),
+                    interval=interval,
+                    blit=blit_status,
+                    frames=image.shape[0],
+                )
+
+
+            elif extra_image and extra_lines:
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -848,7 +991,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig3,
+                    self._updatefig_all,
                     fargs=(
                         img_list,
                         image_list,
@@ -864,14 +1007,12 @@ class MapBase(object):
                         legend_list,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
                 
 
             elif extra_image:
-
-                # print("2")
 
                 img_list = [img,extra_image[0]]
                 image_list = [image,extra_image[1]]
@@ -880,7 +1021,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig2,
+                    self._updatefig_maps,
                     fargs=(
                         img_list,
                         image_list,
@@ -894,13 +1035,11 @@ class MapBase(object):
                         kwargs,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
 
             elif extra_lines:
-
-                # print("3")
 
                 img_list = [img]
                 image_list = [image]
@@ -909,7 +1048,7 @@ class MapBase(object):
 
                 ani = FuncAnimation(
                     fig,
-                    self._updatefig4,
+                    self._updatefig_line,
                     fargs=(
                         img_list,
                         image_list,
@@ -926,14 +1065,12 @@ class MapBase(object):
                         uni_int,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
                 
-
             else:
 
-                # print("4")
                 
                 ani = FuncAnimation(
                     fig,
@@ -951,18 +1088,23 @@ class MapBase(object):
                         kwargs,
                     ),
                     interval=interval,
-                    blit=True,
+                    blit=blit_status,
                     frames=image.shape[0],
                 )
 
             # Business as usual
             if (file is not None) and (file != ""):
                 if file.endswith(".mp4"):
-                    ani.save(file, writer="ffmpeg", dpi=dpi, bitrate=bitrate,savefig_kwargs={"transparent": transparent})
+                    ani.save(file, writer="ffmpeg", dpi=dpi, bitrate=bitrate)
                     plt.close()
                 elif file.endswith(".gif"):
-                    ani.save(
-                        file, writer="imagemagick", dpi=dpi, bitrate=bitrate,savefig_kwargs={"transparent": transparent})
+                    if plt.rcParams['animation.convert_path'].endswith("magick") and transparent:
+                        ani.save(
+                            file, writer="imagemagick", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": True})
+                    else:
+                        ani.save(
+                            file, writer="pillow", dpi=dpi, bitrate=bitrate, fps=fps, savefig_kwargs={"transparent": False})
+                    plt.close()
                 else:
                     # Try and see what happens!
                     ani.save(file, dpi=dpi, bitrate=bitrate, savefig_kwargs={"transparent": transparent})
@@ -1014,7 +1156,7 @@ class MapBase(object):
                     fig.subplots_adjust(
                         left=0.01, right=0.99, bottom=0.01, top=0.99
                     )
-                fig.savefig(file, bbox_inches="tight",transparent=transparent)
+                fig.savefig(file, bbox_inches="tight",transparent=transparent,dpi=dpi)
                 if not custom_ax:
                     plt.close()
             elif not custom_ax:
@@ -1291,11 +1433,11 @@ class YlmBase(legacy.YlmBase):
             get_val(self._f),
         )
 
-    def _get_ortho_latitude_lines(self, **kwargs):
+    def _get_ortho_latitude_lines(self, extra_lat=None, **kwargs,):
         get_val = evaluator(**kwargs)
         inc = get_val(self._inc)
         obl = get_val(self._obl)
-        return get_ortho_latitude_lines(inc=inc, obl=obl)
+        return get_ortho_latitude_lines(inc=inc, obl=obl, extra_lat=extra_lat)
 
     def _get_ortho_longitude_lines(self, i=0, **kwargs):
         get_val = evaluator(**kwargs)
@@ -1480,7 +1622,8 @@ class YlmBase(legacy.YlmBase):
             lat, lon, self._y, self._u, self._f, theta, ld
         )
 
-    def render(self, res=300, projection="ortho", theta=0.0):
+    #added in RV parameter to allow for more general function building with starry
+    def render(self, res=300, projection="ortho", theta=0.0, rv=False):
         """Compute and return the intensity of the map on a grid.
 
         Returns an image of shape ``(res, res)``, unless ``theta`` is a vector,
@@ -2106,13 +2249,16 @@ class LimbDarkenedBase(object):
     def _updatefig(i):
         return ()
     
-    def _updatefig2(i):
+    def _updatefig_maps(i):
         return ()
     
-    def _updatefig3(i):
+    def _updatefig_all(i):
         return ()
     
-    def _updatefig4(i):
+    def _updatefig_line(i):
+        return ()
+    
+    def _updatefig_intensity(i):
         return ()
 
     def _get_flux_kwargs(self, kwargs):

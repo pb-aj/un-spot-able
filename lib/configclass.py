@@ -1,3 +1,9 @@
+"""
+File set up configuration class used in fitclass.py
+Code sourced from: https://github.com/rychallener/theresa
+Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
+"""
+
 class Configuration:
     """
     A class to hold parameters from a configuration file.
@@ -5,8 +11,7 @@ class Configuration:
     def __init__(self):
         self.planet = Planet()
         self.star   = Star()
-        self.twod   = TwoD()
-        self.threed = ThreeD()
+        self.sim   = Sim()
 
 class Planet:
     """
@@ -20,14 +25,8 @@ class Star:
     """
     pass
 
-class TwoD:
+class Sim:
     """
-    A class to hold 2D configuration options.
-    """
-    pass
-
-class ThreeD:
-    """
-    A class to hold 3D configuration options.
+    A class to hold simulation configuration options.
     """
     pass

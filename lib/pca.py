@@ -1,17 +1,29 @@
+"""
+File to run PCA to determine eigencurve basis set following eigenmapping process.  
+Code sourced from: https://github.com/rychallener/theresa
+Challener, R. C., & Rauscher, E. 2022, AJ, 163, 117, doi: 10.3847/1538-3881/ac4885
+
+Modifications made by A.J. deVaux (https://github.com/pb-aj/un-spot-able)
+"""
+
 import numpy as np
-import sklearn
-import sklearn.decomposition
 from sklearn.decomposition import PCA
 
-def pca(arr, method='pca', ncomp=None):
+def pca(arr, ncomp=None):
     """
-    Runs principle component analysis on the input array.
+    Runs principle component analysis on the input array using sci-kit learn PCA 
+    Link: https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+    Pedregosa, F., Varoquaux, G., Gramfort, A., et al. 2011, Journal of Machine Learning Research, 12, 2825
 
     Arguments
     ---------
     arr: 2D array
         (m, n) array, where n is the size of the dataset (e.g., times
         in an observation) and m is the number of vectors
+
+    ncomp: int (optional)
+        Number of component to keep as defined by sci-kit learn.  
+        Default to None which keeps all components; code will set to number of harmonic modes (m)
 
     Returns
     -------
@@ -24,78 +36,22 @@ def pca(arr, method='pca', ncomp=None):
     proj: 2D array
         (m, n) array of data projected in the new space
 
-    Notes
-    -----
-    See https://glowingpython.blogspot.com/2011/07/pca-and-image-compression-with-numpy.html
     """
-    nt = arr.shape[1]
-    
-    if method == 'pca':
-        
-        arr = arr.T
-        # Subtract the mean
-        m = (arr - np.mean(arr.T, axis=1)).T
-        #m = arr
-        # Compute eigenvalues
-        evalues, evectors = np.linalg.eig(np.cov(m))
 
-        # Sort descending
-        idx = np.argsort(evalues)[::-1]
-        evalues  = evalues[   idx]
-        evectors = evectors[:,idx]
-        # Calculate projection of the data in the new space
-        # Need to do it this way for numpy==1.21 (see below)
-        # print(np.array_equal(np.cov(m).T,np.linalg.inv(np.cov(m))))
+    #Run PCA using ncomp and svd_solver = "full"
+    pca = PCA(n_components=ncomp, svd_solver = "full")
+    pca.fit(arr.T)
 
-        proj = np.dot(m.T,evectors).T
+    #Extract needed eigen information from PCA fit
+    evalues  = pca.explained_variance_
+    evectors = pca.components_
+    evectors = evectors.T
+    emean = pca.mean_
 
-        """
-        *NOTE* on proj
-        The initial version had:
-        proj = np.dot(evectors.T, m)
-        This version will cause numpy 1.21 to crash!
-        Need above version, which is equivalent:
-        (m.T * evectors).T = evectors.T * m.T.T = evectors.T * m.T
-        """
-
-    elif method == "full_pca":
-        pca = PCA(n_components=ncomp, svd_solver = "full")
-        pca.fit(arr.T)
-        evalues  = pca.explained_variance_
-        evectors = pca.components_
-        evectors = evectors.T
-
-        arr = arr.T
-        # Subtract the mean
-        m = (arr - np.mean(arr.T, axis=1)).T
-        
-        proj = np.dot(m.T,evectors).T
-
-    elif method == "cov_pca":
-        pca = PCA(n_components=ncomp, svd_solver = "covariance_eigh")
-        pca.fit(arr.T)
-        evalues  = pca.explained_variance_
-        evectors = pca.components_
-        evectors = evectors.T
-
-        arr = arr.T
-        # Subtract the mean
-        m = (arr - np.mean(arr.T, axis=1)).T
-        
-        proj = np.dot(m.T,evectors).T
-    
-    elif method == 'tsvd':
-        # np.random.seed(26)
-        tpca = sklearn.decomposition.TruncatedSVD(n_components=ncomp)
-        tpca.fit(arr.T)
-        evalues  = tpca.explained_variance_
-        evectors = tpca.components_
-        proj = np.zeros((ncomp, nt))
-
-        for i in range(ncomp):
-            proj[i] = np.sum(evectors[i] * arr.T, axis=1)
-
-        evectors = evectors.T
+    # Generate ecurves design matrix (proj)
+    arr = arr.T
+    m = (arr - emean).T
+    proj = np.dot(m.T,evectors).T
             
         
     return evalues, evectors, proj

@@ -41,7 +41,7 @@ def create_eigens(cfile, prompt_user=True):
     cfile: string
         name of configuration file
 
-    use_stored_pca: boolean (optional)
+    prompt_user: boolean (optional)
         Whether or not to prompt the user to use stored eigens.  When True (default), will ask user.
         When False, will use stored eigens if possible without prompting.
 
@@ -187,10 +187,6 @@ def create_eigens(cfile, prompt_user=True):
     se("\n\tNote, the ecurve design matrix does not include the uniform map\n\tand thus the rank should one less than the spherical harmonic result.",dp = dpm)  
     se("----------------------------------------------------------------------------",dp = dpm)
     return eigeny, evalues, evectors, ecurves, lcs, star, fit
-    
-
-    
-
 
 
 

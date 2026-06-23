@@ -167,7 +167,7 @@ def intensity_line(realistic_star, ratio_no_limb, phase = 0, lat = 0, fname=None
                 int_border=True, int_labels=True, ticks=True,
                 int_gridlines=False, guideline=False, guideline_color="k", 
                 fontsize=16, color="sandybrown", include_map=True,
-                cmap = cm.bam, map_gridlines=True, map_labels=False, norm=None,
+                cmap = cm.buda, map_gridlines=True, map_labels=False, norm=None,
                 colorbar="bottom", colorbar_label=True, marker_color="darkgrey"):
     
     """NEED TO TEST MORE EXTRA FEATURES"""
@@ -339,7 +339,7 @@ def intensity_animations(realistic_star, ratio_no_limb, lat= 0, fname=None,
                  int_border=True, int_labels=True, ticks=True, 
                  int_gridlines=False, guideline=False, guideline_color="k", 
                  fontsize=16, color="sandybrown", include_map=True,
-                 cmap = cm.bam, map_gridlines=True, map_labels=False, norm=None,
+                 cmap = cm.buda, map_gridlines=True, map_labels=False, norm=None,
                  colorbar="bottom", colorbar_label=True, marker_color="darkgrey",
                  interval=75, fps=10):
     
@@ -413,21 +413,15 @@ def intensity_animations(realistic_star, ratio_no_limb, lat= 0, fname=None,
         else:
              flux_cbar_label = None
 
-        # if norm is None:
         realistic_star.map.show(theta=np.linspace(0,360,theta_all[::2].shape[0]+1)[:-1],rv=False, ax=axes[0,0], latline=lat,
                                         colorbar_label=flux_cbar_label,
                                         colorbar=colorbar, grid=map_gridlines,
                                         cmap=cmap, colorbar_size="2.5%",
                                         file=fname, dpi = 300, transparent=transparent,
                                         interval=interval, fps=fps, intensity_info=intensity_info,
-                                        extra_lines = [([],limb_line),(no_limb_intenisty,no_limb_line)],)
-        # else:
-        #     realistic_star.map.show(theta=np.linspace(0,360,theta_face.shape[0]),rv=False, ax=axes[0,0], latline=lat,
-        #                                     colorbar_label=flux_cbar_label,
-        #                                     colorbar=colorbar, grid=map_gridlines,
-        #                                     cmap=cmap, colorbar_size="2.5%", norm=norm,
-        #                                     file=fname, dpi = 300, transparent=transparent,
-        #                                     interval=interval, fps=fps)
+                                        extra_lines = [([],limb_line),(no_limb_intenisty,no_limb_line)],
+                                        norm=norm)
+
     
     
     else:
@@ -621,7 +615,7 @@ def scale_real_map(realistic_star, uni_star_limb, scale_value, uni_comp, ratio_n
 
     
 def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180), uni_comp = 1,
-                     scale_star=1, scaler="lc", lat=20, phase = 0):
+                     scale_star=1, scaler="lc", lat=20, phase = 0, cmap=cm.buda):
 
     se("\tCalculating Flux Range Limits\n", dp=dpm)
 
@@ -677,29 +671,29 @@ def create_real_null(null_eigens, fit, results_path, theta=np.linspace(0,360,180
         limb_int = uni_star_limb.map.intensity(lat=0, lon=np.linspace(-90,90,91),rv=False).eval()
         
         create_rv.map_animations(realistic_star, theta = theta,fname=f"{results_path}/{folder_name}/emap_animation.mp4", 
-                       interval = ani_interval, transparent=False, center_flux=np.nanmedian(limb_int))
+                       interval = ani_interval, transparent=False, cmap=cmap)
         
         create_rv.map_animations(realistic_star, theta = theta[::2],fname=f"{results_path}/{folder_name}/emap_animation.gif", 
-                       interval = ani_interval, transparent=False, center_flux=np.nanmedian(limb_int))
+                       interval = ani_interval, transparent=False, cmap=cmap)
 
         create_rv.flux_rv_line(realistic_star,
                      flux_name=f"{results_path}/{folder_name}/flux_curve.png",rv_name=f"{results_path}/{folder_name}/rv_curve.png")
         
         realistic_star.map.amp /= ratio_no_limb
         create_emaps.emap_plot(realistic_star, indiv_path=f"{results_path}/{folder_name}", proj='rect', other_fname=None, 
-                 transparent=False, colorbar=True, center_flux=np.nanmax(limb_int))
+                 transparent=False, colorbar=True, cmap=cmap)
         
         create_emaps.emap_plot(realistic_star, indiv_path=f"{results_path}/{folder_name}", proj='moll', other_fname=None, 
-                 transparent=False, colorbar=True, center_flux=np.nanmax(limb_int))
+                 transparent=False, colorbar=True, cmap=cmap)
         realistic_star.map.amp *= ratio_no_limb
 
-        intensity_line(realistic_star, ratio_no_limb, phase = phase, lat = lat, 
+        intensity_line(realistic_star, ratio_no_limb, phase = phase, lat = lat, cmap=cmap,
                     fname=f"{results_path}/{folder_name}/emap_intensity_l{lat}_p{phase}.png")
 
-        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat, cmap=cmap,
                     fname=f"{results_path}/{folder_name}/emap_intensity_animation_l{lat}.gif")
         
-        intensity_animations(realistic_star, ratio_no_limb, lat=lat,
+        intensity_animations(realistic_star, ratio_no_limb, lat=lat, cmap=cmap,
                     fname=f"{results_path}/{folder_name}/emap_intensity_animation_l{lat}.mp4")
 
         se(f'\033[38;5;208m\t\t"Null map {i}" plots are complete!\033[0m', dp=dpm)

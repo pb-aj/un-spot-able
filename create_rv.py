@@ -259,7 +259,7 @@ def flux_rv_line(rv_star,theta = np.linspace(-180, 180, 361), flux=None, rv=None
 
 
 
-def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,center_flux=0):
+def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,norm=None):
     """
     [desc]
 
@@ -289,10 +289,10 @@ def multi_phase_plot(rv_star,fname=None,cmap=cm.bam,center_flux=0):
         ax = axes[yloc, xloc]
         ax2 = axes[yloc, xloc+ncols]
 
-        rv_star.map.show(rv=False,theta=degree,ax=ax,figsize=(5,5),cmap=cmap)
+        rv_star.map.show(rv=False,theta=degree,ax=ax,figsize=(5,5),cmap=cmap,norm=norm)
         ax.set_title(f"{rv_star.map.flux(theta=degree).eval()[0]:.3f}")
 
-        rv_star.map.show(rv=True,theta=degree,ax=ax2,figsize=(5,5))
+        rv_star.map.show(rv=True,theta=degree,ax=ax2,figsize=(5,5),cmap=cm.vik)
         ax2.set_title(f"{rv_star.map.rv(theta=degree).eval()[0]:.3f}")
 
         degree += int(360/number_plots)
@@ -518,7 +518,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                             norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                             grid=map_gridlines, colorbar_size="2.5%",
                             file=fname, dpi = dpi, html5_video=html5_video,
-                            transparent=transparent, interval=interval, fps=fps)
+                            transparent=transparent, interval=interval, fps=fps, cmap=cm.vik)
             
             else:
                 fig, axes = plt.subplots(nrows=2, ncols=1, squeeze=False,
@@ -580,14 +580,15 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                     extra_lines = [(rv_data,rv_image)],
                                     legend_list = [L_rv],
                                     file=fname, dpi = dpi, html5_video=html5_video,
-                                    transparent=transparent, interval=interval, fps=fps)
+                                    transparent=transparent, interval=interval, fps=fps, cmap=cm.vik)
                 else:
                     rv_star.map.show(theta=theta,rv=True, ax=axes[0,0],show_image=True, colorbar=colorbar, 
                                     norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
                                     grid=map_gridlines,
                                     extra_lines = [(rv_data,rv_image)],
                                     file=fname, dpi = dpi, html5_video=html5_video,
-                                    transparent=transparent, interval=interval, fps=fps)
+                                    transparent=transparent, interval=interval, fps=fps,
+                                    cmap=cm.vik)
     else:
 
         if maps_only:
@@ -627,7 +628,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                             grid=map_gridlines, colorbar_size="2.5%",
                             extra_image=[img1,image1,lonlines1,latlines1],
                             file=fname, dpi = dpi, html5_video=html5_video,
-                            transparent=transparent, interval=interval, fps=fps)
+                            transparent=transparent, interval=interval, fps=fps, cmap=cm.vik)
             
             
         else:
@@ -723,7 +724,7 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                 extra_lines = [(flux_data,flux_image),(rv_data,rv_image)],
                                 legend_list = [L_flux,L_rv],
                                 file=fname, dpi = dpi, html5_video=html5_video,
-                                transparent=transparent, interval=interval, fps=fps)
+                                transparent=transparent, interval=interval, fps=fps, cmap=cm.vik)
             else:
                 rv_star.map.show(theta=theta,rv=True, ax=axes[0,1],show_image=True, colorbar=colorbar, 
                                 norm=matplotlib.colors.CenteredNorm(), colorbar_label = rv_cbar_label,
@@ -731,12 +732,12 @@ def map_animations(rv_star,theta = np.linspace(0, 360, 181)[:-1], fname=None, cm
                                 extra_image=[img1,image1,lonlines1,latlines1],
                                 extra_lines = [(flux_data,flux_image),(rv_data,rv_image)],
                                 file=fname, dpi = dpi, html5_video=html5_video,
-                                transparent=transparent, interval=interval, fps=fps)
+                                transparent=transparent, interval=interval, fps=fps, cmap=cm.vik)
     plt.close(fig)
 
 
 
-def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181)):
+def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181), cmap=cm.buda):
     """
     [desc]
 
@@ -786,21 +787,19 @@ def create_rv(eigeny, fit, rv_path, theta = np.linspace(0, 360, 181)):
         image = uni_star.map.render(theta=180,projection="rect",rv=False).eval()
         
         map_animations(rv_star, theta = theta[:-1],fname=f"{indiv_path}/emap_animation.mp4", 
-                       interval = ani_interval, transparent=False)
+                       interval = ani_interval, transparent=False, cmap=cmap)
         
         map_animations(rv_star, theta = theta[::2][:-1],fname=f"{indiv_path}/emap_animation.gif", 
-                       interval = ani_interval, transparent=False)
+                       interval = ani_interval, transparent=False, cmap=cmap)
         
         create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='rect', other_fname=None, 
-                 transparent=False, colorbar=True, center_flux=np.nanmean(image))
+                 transparent=False, colorbar=True, cmap=cmap)
         
         create_emaps.emap_plot(rv_star, indiv_path=indiv_path, proj='moll', other_fname=None, 
-                 transparent=False, colorbar=True, center_flux=np.nanmean(image))
+                 transparent=False, colorbar=True, cmap=cmap)
 
         flux_rv_line(rv_star,
-                     flux_name=f"{rv_path}/map_{i}/flux_curve.png",rv_name=f"{rv_path}/map_{i}/rv_curve.png")
-        
-        # multi_phase_plot(rv_star,fname=f"{rv_path}/map_{i}/map_slideshow.png",center_flux=np.nanmean(image))    
+                     flux_name=f"{rv_path}/map_{i}/flux_curve.png",rv_name=f"{rv_path}/map_{i}/rv_curve.png")   
 
         se(f'\033[38;5;208m\t\t"Emap {i}" plots are complete!\033[0m', dp=dpm)
         se("\t\t------------------------------------------------", dp=dpm)

@@ -45,9 +45,7 @@ dpm = True #change to False to make quiet
 
 def set_emap_directory(fit):
     """
-    Function generates various plots associated with the eigenmaps (emaps)  
-    Can be set to have different projection styles  
-    Will always create overall emap plot and is set by default to create individual as well
+    Set up directory to save emaps and light curves into
 
     Arguments
     ---------
@@ -73,14 +71,12 @@ def set_emap_directory(fit):
     return emaps_path
 
 def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.bam, 
-                 center_flux=0, cmap_norm = None,
-                 transparent=False, colorbar=True, colorbar_label = True, fontsize=16,
-                 labels=True, title=None, border=True, ticks=True, gridlines=True, 
-                 gridcolor="k", unseen_line=True, cover_unseen=True):
+                cmap_norm = None, transparent=False, colorbar=True, colorbar_label = True, colorbar_tick_rotation = 0,
+                fontsize=16, labels=True, title=None, border=True, ticks=True, gridlines=True, 
+                unseen_line= False, cover_unseen=True):
     
     """
-    Function generates a single emap projection depending on passed star
-    Can be set to have different projection styles 
+    Generate emap flux projection depending on passed parameters
 
     Arguments
     ---------
@@ -89,25 +85,28 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
     indiv_path: string (optional)
         Path to folder where emap plot will be saved.  If None, will display image instead of saving
+        *NOTE* to save in current folder, must pass ../{folder_name} 
 
     proj: str (optional)
         Type of projection to use in 2D plots of eigenmaps
 
-    *NOTE* Remaining agruments are optional and used to adjust final plot.  These are useful when using code
-    to prepare a presentation/paper but not needed for general use
+    other_fname: string (optional)
+        Name of file to use when saving.  If None, will save as 'emap-{proj}.png'
+        If indiv_path is None, then this parameter has no effect
+
+    *NOTE* Remaining agruments are used to adjust final plot.  These are useful when using code
+    to prepare a presentation/paper but not required for general use
 
     cmap: str (optional)
         What color map to use in plots.  Default is cm.bam
         To use the original starry colors, set to 'plasma'
-    
-    center_flux: float (optional)
-        Value to center colorbar at.  Default is 0
 
     cmap_norm: Matplotlib Normalization (optional)
-        Normalization to use for map, if None uses CenteredNorm around center_flux value.  Default is None
+        Normalization to use for map, if None uses no norm.  Default is None
 
     transparent: boolean (optional)
         Whether to make plots transparent.  Default to False
+        Only applies when saving figure
 
     colorbar: boolean (optional)
         If True, will generate colorbar on individual emap plots.  Default is True
@@ -115,36 +114,36 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
     colorbarlabel: boolean (optional)
         If True, will generate a label for the colorbar on individual emap plots.  Default is True
 
-    fontsize: int (optional)
-        Sets size of axis labels and title (1.5x axis).  Default is 24
+    colorbar_tick_rotation: int (optional)
+        Value to rotate colorbar ticks by.  Default is 0
 
-    label: boolean (optional)
+    fontsize: int (optional)
+        Sets size of axis labels, ticks, colorbar labels, and title.  Default is 16
+        fontsize is scaled from value to ensure relative size between each object is reasonable
+
+    labels: boolean (optional)
         If True, will generate axis labels.  Default is True
 
     title: str (optional)
         If value passed, will set it as the title.  Default is None
 
     border: boolean (optional)
-        Wether to add border around each axis plot.  Default to True
+        If True, will add border around plot.  Default to True
 
     tick: boolean (optional)
         If True, will include ticks and values.  Default is True
         Only works for proj="rect"
 
     gridlines: boolean (optional)
-        If True, will include grid lines.  Default is False
+        If True, will include grid lines.  Default is True
         Only works for proj="rect"
 
-    gridcolor: string (optional)
-        Color to set curve to be (see https://matplotlib.org/stable/gallery/color/named_colors.html).  
-        Default is 'darkgrey'.
-
     unseen_line: boolean (optional)
-        Whether to include gridline that shows what is never visible according to star's inclination.
-        Default is False.  Only applies if gridlines=True
+        Whether to include line that separates visible from invisible regions according to star's inclination.
+        Default is False.
 
     cover_unseen: boolean (optional)
-        Whether to black out region of star that is never visibale according to star's inclination.
+        Whether to black out region of star that is invisibale according to star's inclination.
         Default is True.
 
     Returns
@@ -162,9 +161,9 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         dy = 180.0 / image.shape[0]
 
         extent = np.array([
-            -90 - dx,  # Left (padded by one pixel width)
+            -90 - dx,  # Left
             90,       # Right
-            -90 - dy,   # Bottom (padded by one pixel height)
+            -90 - dy,   # Bottom
             90         # Top
         ])
 
@@ -175,9 +174,9 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         dy = 180.0 / image.shape[0]
 
         extent = np.array([
-            -90 - dx,  # Left (padded by one pixel width)
+            -90 - dx,  # Left
             90,       # Right
-            -90 - dy,   # Bottom (padded by one pixel height)
+            -90 - dy,   # Bottom
             90         # Top
         ])
 
@@ -190,13 +189,20 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         dx = 360.0 / image.shape[1] 
         dy = 180.0 / image.shape[0]
 
-
-        extent = np.array([
-            -180 - dx/2,  # Left (padded by one pixel width)
-            180 - dx/2,       # Right
-            -90 - dy/2,   # Bottom (padded by one pixel height)
-            90 - dy/2         # Top
-        ])
+        if indiv_path:
+            extent = np.array([
+                -180 - dx/2,  # Left
+                180 - dx/2,       # Right
+                -90 - dy/2,   # Bottom
+                90 - dy/2         # Top
+            ])
+        else:
+            extent = np.array([
+                -180 - dx,  # Left
+                180,      # Right
+                -90 - dy,   # Bottom
+                90 - dy/8         # Top
+            ])
 
         fname = 'emap-moll.png'
 
@@ -213,13 +219,13 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
                     norm=cmap_norm)
     else:
-        plt.imshow(image, origin="lower", cmap=cmap, extent=extent,
-                    norm=mpl.colors.CenteredNorm(vcenter=center_flux))
+        plt.imshow(image, origin="lower", cmap=cmap, extent=extent)
 
     if colorbar:
         cbar = plt.colorbar(aspect = 40, pad = .03, shrink = 0.95)
+        cbar.ax.tick_params(labelsize=fontsize * .60, rotation = colorbar_tick_rotation)
         if colorbar_label:
-            cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 15)
+            cbar.set_label("Flux [Normalized]", size=fontsize * .75, rotation = 270, labelpad = 15)
 
     if labels:
         plt.xlabel("Longitude [deg]",fontsize=fontsize)
@@ -229,17 +235,23 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         plt.title(title,fontsize=int(fontsize*1.5))
 
 
-    if gridlines: 
-        if not cover_unseen and unseen_line:
-            unseen_degree = -1 * star.map.inc.eval()
+    if gridlines or border or unseen_line: 
+        
+        if unseen_line:
+            unseen_degree = star.map.inc.eval()
+
+            if unseen_degree > 90:
+                unseen_degree = 180 - unseen_degree
+            else:
+                unseen_degree *= -1
         else:
             unseen_degree = None
 
         if proj == "rect":
-            plt.grid(color=gridcolor,linestyle=":")
+            if gridlines:
+                plt.grid(color="k",linestyle=":")
             if not unseen_degree is None:
-                plt.axhline(unseen_degree, c="k", ls="-", lw=4, alpha=1, zorder=1)
-                plt.axhline(unseen_degree, c="deepskyblue", ls="-", lw=3, alpha=1, zorder=1)
+                plt.axhline(unseen_degree, c="k", ls="--", lw=1.5, alpha=1, zorder=1)
 
         elif proj == "moll":
 
@@ -250,32 +262,30 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
                 
                 if unseen_degree and n == len(lats) - 1:
 
-                    black_line = plt.plot(
-                        l[0], l[1], c="k",ls="-", lw=4, alpha=1, zorder=1
+                    dot_line = plt.plot(
+                        l[0], l[1], c="k",ls="--", lw=1.5, alpha=1, zorder=1
                     )[0]
-                    sky_line = plt.plot(
-                        l[0], l[1], c="deepskyblue",ls="-", lw=3, alpha=1, zorder=1
-                    )[0]
-                else:
+                elif gridlines:
                     (latlines[n],) = plt.plot(
                         l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
                     )
 
             lons = lat_lon_lines.get_moll_longitude_lines(dlon=45)
             lonlines = [None for n in lons]
+
             for n, l in enumerate(lons):
                 if (n == 0 or n == len(lons) - 1) and border:
                     (lonlines[n],) = plt.plot(
                         l[0], l[1], "k-", lw=1.5, alpha=1, zorder=1
                     )
-                else:
+                elif gridlines:
                     (lonlines[n],) = plt.plot(
                         l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
                     )
 
 
             # Force the unseen_line to stay strictly inside the outer boundary line
-            if unseen_degree and 'sky_line' in locals():
+            if unseen_degree and 'sky_line' in locals() and border:
 
                 left_path = lonlines[0].get_path()
                 right_path = lonlines[-1].get_path()
@@ -285,8 +295,7 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
                 clip_patch = mpatches.PathPatch(closed_oval_path, transform=plt.gca().transData)
     
-                sky_line.set_clip_path(clip_patch)
-                black_line.set_clip_path(clip_patch)
+                dot_line.set_clip_path(clip_patch)
 
             plt.ylim(-93,93)
             plt.xlim(-183,183)
@@ -300,14 +309,11 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
                 if unseen_degree and n == len(lats) - 1:
 
-                    black_line = plt.plot(
-                        l[0], l[1], c="k",ls="-", lw=3, alpha=1, zorder=1
-                    )[0]
-                    sky_line = plt.plot(
-                        l[0], l[1], c="deepskyblue",ls="-", lw=2, alpha=1, zorder=1
+                    dot_line = plt.plot(
+                        l[0], l[1], c="k",ls="--", lw=1.5, alpha=1, zorder=1
                     )[0]
 
-                else:
+                elif gridlines:
                     (latlines[n],) = plt.plot(
                         l[0], l[1], "k:", lw=0.5, alpha=1, zorder=0
                     )
@@ -315,17 +321,17 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
             lons = lat_lon_lines.get_ortho_longitude_lines()
             lonlines = [None for n in lons]
             for n, l in enumerate(lons):
-                if n == 0 or n == (len(lons) - 1) and border:
+                if (n == 0 or n == (len(lons) - 1)) and border:
                     (lonlines[n],) = plt.plot(
                     l[0], l[1], "k-", lw=1.5, alpha=1, zorder=1
                     )
-                else:
+                elif gridlines:
                     (lonlines[n],) = plt.plot(
                     l[0], l[1], "k:", lw=.5, alpha=1, zorder=0
                     )
 
             # Force the unseen_line to stay strictly inside the outer boundary line
-            if unseen_degree and 'sky_line' in locals():
+            if unseen_degree and 'sky_line' in locals() and border:
 
                 left_path = lonlines[0].get_path()
                 right_path = lonlines[-1].get_path()
@@ -335,8 +341,7 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
                 clip_patch = mpatches.PathPatch(closed_oval_path, transform=plt.gca().transData)
     
-                sky_line.set_clip_path(clip_patch)
-                black_line.set_clip_path(clip_patch)
+                dot_line.set_clip_path(clip_patch)
                 
 
 
@@ -345,12 +350,20 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
             plt.ylim(-95,95)
 
 
+
     if cover_unseen:
-        unseen_degree = -1 * star.map.inc.eval()
+        unseen_degree = star.map.inc.eval()
+
+        if unseen_degree > 90:
+            fill_direction = -1
+            unseen_degree = 180 - unseen_degree
+        else:
+            fill_direction = 1
+            unseen_degree *= -1
 
         if proj == "rect":
 
-            plt.fill_between(np.linspace(-180,180,361), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
+            plt.fill_between(np.linspace(-180,180,361), -90 * fill_direction, unseen_degree, color="k", alpha = .6, edgecolor='none')
 
             pass
 
@@ -383,7 +396,7 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
             ys = lon_ys[x_mask & y_mask]
 
-            plt.fill_between(xs, ys, np.nanmedian(fill_val), 
+            plt.fill_between(xs, ys * fill_direction, np.nanmedian(fill_val), 
                     color="k", alpha = .6, edgecolor='none')
 
         else:
@@ -414,7 +427,7 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
             ys = lon_ys[x_mask & y_mask]
 
-            plt.fill_between(xs, ys, np.nanmedian(fill_val), 
+            plt.fill_between(xs, ys * fill_direction, np.nanmedian(fill_val), 
                     color="k", alpha = .6, edgecolor='none')
 
     if not ticks or proj != "rect":
@@ -428,7 +441,7 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
         plt.gca().set_yticks([-60,-30,0,30,60])
         plt.gca().set_yticklabels([-60,-30,0,30,60])
 
-        plt.tick_params(direction="in")
+        plt.tick_params(direction="in", labelsize=fontsize * .75)
 
     if not border or proj != "rect":
         plt.gca().set_frame_on(False)
@@ -444,11 +457,11 @@ def emap_plot(star, indiv_path=None, proj='moll', other_fname=None, cmap = cm.ba
 
         
 
-def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, center_flux=0,
-                 transparent=False, labels=True, title = None, border=True, 
-                 ticks=True, gridlines=True, gridcolor="k", unseen_line=True, cover_unseen = True,
-                 fontsize=16, standard_color = True, colorbar=True, colorbar_label = True, 
-                 individual = True, standard_indiv = True):
+def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, individual=True, norm=mpl.colors.CenteredNorm(), 
+                standard_cbar = True, standard_indiv_cbar = True, center_flux=0, 
+                transparent=False, labels=True, title = None, border=True, 
+                ticks=True, gridlines=True, gridcolor="k", unseen_line=True, cover_unseen = True,
+                fontsize=16, colorbar=True, colorbar_label = True):
     
     """
     Function generates various plots associated with the eigenmaps (emaps)  
@@ -514,7 +527,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
     fontsize: int (optional)
         Sets size of axis labels and title (1.5x axis).  Default is 24
 
-    standard_color: boolean (optional)
+    standard_cbar: boolean (optional)
         If True, code will standardize colormap across all maps.  Default is True 
         If False, no colorbar will be made.
 
@@ -530,8 +543,8 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
         Generates using default parameters from emap_plot function.  
         Plotting parameters passed for overall generally do not affect individual
 
-    standard_indiv: boolean (optional)
-        If True, will use standard color map for all individual plots.  Only works if standard_color = True
+    standard_indiv_cbar: boolean (optional)
+        If True, will use standard color map for all individual plots.  Only works if standard_cbar = True
         Note, if individual = False this will have no effect.
 
     Returns
@@ -543,7 +556,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
     se("\tPlotting eigenmaps:", dp = dpm)
     se("\t------------------------------------------------", dp = dpm)
 
-    ncurves, ny = eigeny.shape
+    ncurves = eigeny.shape[0]
 
     se(f"\tSetting projection to {proj}", dp = dpm)
 
@@ -608,7 +621,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
                              sharex=True, sharey=True, figsize=(10,7))
     
     if individual and emaps_path:
-        se(f"\n\tGenerating indivdiual emap plots", dp = dpm)
+        se(f"\n\tGenerating individual emap plots", dp = dpm)
 
     rendered_maps = []
 
@@ -624,7 +637,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
         rendered_maps.append(current_map)
 
-        if standard_color:
+        if standard_cbar:
 
             amp_array = np.abs(np.array([center_flux - np.nanmin(current_map), np.nanmax(current_map) - center_flux]))
 
@@ -647,7 +660,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
         rendered_map = rendered_maps[j]
         
-        if standard_color:
+        if standard_cbar:
             im = ax.imshow(rendered_map,
                     origin="lower",
                     cmap=cmap,
@@ -658,7 +671,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
                     origin="lower",
                     cmap=cmap,
                     extent=extent,
-                    norm = mpl.colors.CenteredNorm(vcenter=center_flux))
+                    norm=norm)
 
         
         if individual and emaps_path:
@@ -667,18 +680,18 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
             if not os.path.isdir(indiv_path):
                 os.mkdir(indiv_path)
 
-            if standard_indiv:
-                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
+            if standard_indiv_cbar:
+                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap,
                     transparent=transparent, cmap_norm=overall_norm)
             else:
-                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap, center_flux=center_flux, 
-                    transparent=transparent, cmap_norm=None)
+                emap_plot(star, indiv_path=indiv_path, proj=proj, other_fname=f"emap_{j}_{proj}", cmap = cmap,
+                    transparent=transparent, cmap_norm=norm)
 
 
 
         if gridlines:
 
-            if not cover_unseen and unseen_line:
+            if unseen_line:
                 unseen_degree = -1 * star.map.inc.eval()
             else:
                 unseen_degree = None
@@ -789,11 +802,18 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
 
         if cover_unseen:
-            unseen_degree = -1 * star.map.inc.eval()
+            unseen_degree = star.map.inc.eval()
+
+            if unseen_degree > 90:
+                fill_direction = -1
+                unseen_degree = 180 - unseen_degree
+            else:
+                fill_direction = 1
+                unseen_degree *= -1
 
             if proj == "rect":
 
-                ax.fill_between(np.linspace(-180,180,361), -90, unseen_degree, color="k", alpha = .6, edgecolor='none')
+                ax.fill_between(np.linspace(-180,180,361), -90 * fill_direction, unseen_degree, color="k", alpha = .6, edgecolor='none')
 
                 pass
 
@@ -826,7 +846,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
                 ys = lon_ys[x_mask & y_mask]
 
-                ax.fill_between(xs, ys, np.nanmedian(fill_val), 
+                ax.fill_between(xs, ys * fill_direction, np.nanmedian(fill_val), 
                         color="k", alpha = .6, edgecolor='none')
 
             else:
@@ -857,7 +877,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
                 ys = lon_ys[x_mask & y_mask]
 
-                ax.fill_between(xs, ys, np.nanmedian(fill_val), 
+                ax.fill_between(xs, ys * fill_direction, np.nanmedian(fill_val), 
                         color="k", alpha = .6, edgecolor='none')
         
 
@@ -887,7 +907,7 @@ def create_emaps(star, eigeny, emaps_path=None, proj='moll', cmap = cm.bam, cent
 
     fig.tight_layout()
 
-    if colorbar and standard_color:
+    if colorbar and standard_cbar:
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95, aspect = 40, pad = .03)
         if colorbar_label:
             cbar.set_label("Flux [Normalized]", size=12, rotation = 270, labelpad = 15)
@@ -992,7 +1012,7 @@ def create_eflux(star, eigeny, emaps_path=None, theta = np.linspace(-180, 180, 3
                              sharex=True, sharey=False, figsize=(10, 6))
     
     if individual and emaps_path:
-        se(f"\tGenerating indivdiual light curve plots\n", dp = dpm)
+        se(f"\tGenerating individual light curve plots\n", dp = dpm)
     
     for j in range(ncurves):
         star.map[:,:] = eigeny[j]

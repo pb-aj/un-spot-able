@@ -99,28 +99,6 @@ def mkcurves(star, nt, lmax, ncurves, use_y00):
 
     return eigeny, evalues, evectors, proj, lcs
 
-"""
-Function added by A.J. deVaux to pull out only the eigenmaps (no plotting)
-"""
 
-def mkmaps(star, eigeny, proj="rect"):
-
-    ncurves, ny = eigeny.shape
-    eigenmaps = []
-
-    lmax = np.int(ny**0.5 - 1)
-
-    for j in range(ncurves):
-        star.map[1:,:] = 0
-        
-        yi = 1
-        for l in range(1, lmax + 1):
-            for m in range(-l, l + 1):
-                star.map[l, m] = eigeny[j, yi]
-                yi += 1
-    
-        eigenmaps.append(star.map.render(theta=0, projection=proj).eval())
-
-    return np.array(eigenmaps)
 
             
